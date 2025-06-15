@@ -1,16 +1,25 @@
 {
   "name": "walmart-sparkathon",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "AI-driven Multi-modal Shopping Assistant - Walmart Sparkathon 2024",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "type-check": "turbo run type-check"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["walmart", "sparkathon", "ai", "shopping", "assistant"],
+  "author": "Team Gamma, Vedika, Dristant, Manodeep",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
-    "turbo": "^2.5.4"
-  }
+    "turbo": "^2.5.4",
+    "prettier": "^3.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
 }
