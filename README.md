@@ -6,13 +6,13 @@
 
 ## 👥 Team Members & Responsibilities
 
-We are a team of four collaborating on this project for the Walmart Sparkathon. **Gamma** is leading the frontend development and handling DevOps responsibilities, setting up the monorepo with Turborepo and pnpm, and guiding the overall project structure. **Vedika** is responsible for building the backend using Node.js with GraphQL, managing all server-side logic and API development. **Dristant** is focusing on the mobile application, developing it using React Native with Expo to ensure seamless user experience on mobile platforms. **Manodeep** is handling all the AI-related features and integrations, working with APIs like Tavily and Groq to power intelligent features within the application. Together, we're aiming to build a full-stack solution with both web and mobile interfaces, supported by robust AI capabilities.
+We are a team of four collaborating on this project for the Walmart Sparkathon. **Harshit** is leading the frontend development and handling DevOps responsibilities, setting up the monorepo with Turborepo and pnpm, and guiding the overall project structure. **Vedika** is responsible for building the backend using Node.js with GraphQL, managing all server-side logic and API development. **Dristant** is focusing on the mobile application, developing it using **Kotlin (Android)** to ensure seamless user experience on mobile platforms. **Manodeep** is handling all the AI-related features and integrations, working with APIs like Tavily and Groq to power intelligent features within the application. Together, we're aiming to build a full-stack solution with both web and mobile interfaces, supported by robust AI capabilities.
 
 | Name | Role | Responsibilities |
 |------|------|------------------|
 | **Harshit** | Frontend & DevOps | Next.js web app, Turborepo setup, project architecture |
 | **Vedika** | Backend Developer | Node.js + GraphQL API, MongoDB, server-side logic |
-| **Dristant** | Mobile Developer | React Native (Expo) app, mobile UI/UX |
+| **Dristant** | Mobile Developer | Kotlin (Android) app, mobile UI/UX |
 | **Manodeep** | AI Developer | Tavily API, Groq API, AI features & integrations |
 
 ## 🚀 Features
@@ -29,7 +29,7 @@ We are a team of four collaborating on this project for the Walmart Sparkathon. 
 
 | Component | Technology |
 |-----------|------------|
-| **Mobile App** | React Native (Expo) |
+| **Mobile App** | Kotlin (Android) |
 | **Web App** | Next.js (React) + Tailwind CSS |
 | **Backend/API** | Node.js + Apollo Server (GraphQL) |
 | **Database** | MongoDB Atlas |
@@ -48,7 +48,7 @@ walmart-sparkathon/
 │   ├── web/         → Next.js frontend
 │   ├── api/         → Node.js GraphQL backend  
 │   ├── ai/          → AI backend/service (Tavily, Groq)
-│   └── mobile/      → React Native (Expo) app
+│   └── mobile/      → Kotlin (Android) app
 ├── packages/
 │   ├── common/      → Shared types and utilities
 │   └── ai-utils/    → (optional, shared AI helpers)
@@ -68,6 +68,8 @@ walmart-sparkathon/
   ```bash
   npm install -g pnpm
   ```
+- **Android Studio** (for mobile app):
+  - Download from https://developer.android.com/studio
 
 ### 📥 Clone the Repository
 ```bash
@@ -75,7 +77,7 @@ git clone https://github.com/Harsh-GAMMARAYS/walmart-sparkathon.git
 cd walmart-sparkathon
 ```
 
-### 📦 Install Dependencies
+### 📦 Install Dependencies (for web/api/ai)
 ```bash
 pnpm install
 ```
@@ -83,7 +85,7 @@ pnpm install
 ### 🏃 Running Applications
 Each team member can run their specific app:
 
-**Gamma (Web Frontend):**
+**Harshit (Web Frontend):**
 ```bash
 cd apps/web
 pnpm dev
@@ -96,12 +98,8 @@ pnpm dev
 ```
 
 **Dristant (Mobile App):**
-```bash
-cd apps/mobile
-pnpm start
-# or
-expo start
-```
+- Open `apps/mobile/` in Android Studio
+- Build and run the app on an emulator or device
 
 **Manodeep (AI Service):**
 ```bash
@@ -155,3 +153,13 @@ pnpm dev
 - **Boost Personalization**: AI-driven recommendations for better customer experience  
 - **Cutting-edge Tech**: Multi-modal AI interaction (text, voice, image)
 - **Seamless Experience**: Works across web and mobile platforms
+
+## 🆘 Need Help?
+- **DevOps/Frontend Issues**: Contact @Harshit
+- **Backend/API Issues**: Contact @Vedika  
+- **Mobile App Issues**: Contact @Dristant
+- **AI Integration Issues**: Contact @Manodeep
+
+---
+
+**Built with ❤️ for Walmart Sparkathon 2024**
