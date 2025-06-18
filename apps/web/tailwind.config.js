@@ -8,8 +8,9 @@ module.exports = {
     extend: {
       colors: {
         walmart: {
-          blue: "#0152E2",
+          blue: "#0153E3",
         },
+        'walmart-light': '#F0F4FE',
       },
     },
   },
