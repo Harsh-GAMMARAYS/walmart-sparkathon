@@ -4,7 +4,6 @@ import { gql } from 'graphql-tag';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Product } from './models/Product';
-import { Application } from 'express';
 
 async function connectDB(): Promise<void> {
   try {
@@ -28,7 +27,7 @@ const typeDefs = gql`
     brand: String!
     description: String!
     image: String
-    stock: Int!
+    price: Float!
     createdAt: String!
   }
 
@@ -39,11 +38,10 @@ const typeDefs = gql`
     brand: String!
     description: String!
     image: String
-    stock: Int
+    price: Float
   }
 
   type Query {
-    hello: String
     products: [Product!]!
     product(id: ID!): Product
     productsByCategory(category: String!): [Product!]!
