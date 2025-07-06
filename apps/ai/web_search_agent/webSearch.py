@@ -2,8 +2,7 @@
 
 import requests
 import json
-import pprint
-from typing import Dict, Any
+from typing import Dict
 from dotenv import load_dotenv
 import os
 

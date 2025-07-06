@@ -1,29 +1,32 @@
-from rich.console import Console
-from rich.text import Text
+import requests
 
-console = Console()
+url = "http://localhost:8000/ai/imageSearch"
+file_path = "testImage.jpg"  # path to the image file
+
+with open(file_path, "rb") as img_file:
+    files = {"image": ("sample.jpg", img_file, "image/jpeg")}
+    response = requests.post(url, files=files)
+
+print(response.json())
 
 
-"""https://patorjk.com/text-color-fader/"""
 
-ascii_art = """\
-██╗   ██╗██╗   ██╗██████╗  █████╗ ███████╗ ██████╗ █████╗ ███╗   ██╗███╗   ██╗███████╗██████╗ 
-╚██╗ ██╔╝██║   ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗████╗  ██║████╗  ██║██╔════╝██╔══██╗
- ╚████╔╝ ██║   ██║██████╔╝███████║███████╗██║     ███████║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
-  ╚██╔╝  ██║   ██║██╔══██╗██╔══██║╚════██║██║     ██╔══██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
-   ██║   ╚██████╔╝██║  ██║██║  ██║███████║╚██████╗██║  ██║██║ ╚████║██║ ╚████║███████╗██║  ██║
-   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝"""
+query_json = {
+'query_type' : 'text',
+'content':{
+            'text_query': "I need a blue t-shirt, size large from hnm."
+            },
+'uid': "1234",
+'action':"toolagent"
+}
 
-# Gradient colors from pink to blue
-gradient = ["#ff77ff", "#cc66ff", "#9966ff", "#6666ff", "#3399ff", "#00ccff", "#00ffff"]
 
-# Split into lines
-lines = ascii_art.splitlines()
-colored_lines = []
 
-for i, line in enumerate(lines):
-    color = gradient[i * len(gradient) // len(lines)]
-    colored_lines.append(Text(line, style=color))
+url = "http://localhost:8000/ai/agentQuery"
 
-for line in colored_lines:
-    console.print(line)
+response = requests.post(url, json=query_json)
+
+print(response.json)
+
+
+

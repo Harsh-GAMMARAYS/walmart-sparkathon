@@ -1,8 +1,6 @@
 from groq import Groq
-import asyncio
 from dotenv import load_dotenv
 import os
-from bs4 import BeautifulSoup
 
 
 

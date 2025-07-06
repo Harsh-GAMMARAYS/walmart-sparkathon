@@ -1,12 +1,10 @@
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv(dotenv_path="./.env")
 
-from pymongo import MongoClient
-from dotenv import load_dotenv
-import os
 
 class DatabaseSearcher:
     def __init__(self, llm , db_name="dataset1", collection_name="e-commerce-database"):
@@ -75,7 +73,20 @@ class DatabaseSearcher:
         """
 
         response = self.llm.get_response(prompt = prompt)
+        
+        
+        
+        
+#         response = """```python
+# {'$or': [{'title': {'$regex': 'hnm|bags', '$options': 'i'}}, {'description': {'$regex': 'hnm|bags', '$options': 'i'}}, {'brand': {'$regex': 'hnm', '$options': 'i'}}]}
+# ```"""
         mongo_filter = response.strip()
+        mongo_filter = mongo_filter.replace("python","")
+        mongo_filter = mongo_filter.replace("```" , "")
+        
+        
+        
+        
         print(mongo_filter)
         try:
             return eval(mongo_filter)
@@ -135,17 +146,28 @@ class DatabaseSearcher:
         return agent_response
 
 if __name__ == "__main__":
-    schema = {
-        "title": "string",
-        "category": "string",
-        "subcategory": "string",
-        "brand": "string",
-        "description": "string",
-        "image": "list of strings (image URLs)",
-        "price": "float"
-    }
+    # schema = {
+    #     "title": "string",
+    #     "category": "string",
+    #     "subcategory": "string",
+    #     "brand": "string",
+    #     "description": "string",
+    #     "image": "list of strings (image URLs)",
+    #     "price": "float"
+    # }
 
-    searcher = DatabaseSearcher(db_name="dataset1", collection_name="e-commerce-database")
+    # searcher = DatabaseSearcher(db_name="dataset1", collection_name="e-commerce-database")
 
-    query = "Show me cartoon dresses for toddler girls under ₹20"
-    searcher.search(query)
+    # query = "Show me cartoon dresses for toddler girls under ₹20"
+    # searcher.search(query)
+
+
+
+    response = """```python
+{'$or': [{'title': {'$regex': 'hnm|bags', '$options': 'i'}}, {'description': {'$regex': 'hnm|bags', '$options': 'i'}}, {'brand': {'$regex': 'hnm', '$options': 'i'}}]}
+```"""
+    mongo_filter = response.strip()
+    mongo_filter = mongo_filter.replace("python","")
+    mongo_filter = mongo_filter.replace("```" , "")
+    print(eval(mongo_filter))
+    

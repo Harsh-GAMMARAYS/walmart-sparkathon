@@ -1,187 +1,184 @@
- manodeepray
 
-`/query`
+# `/query` API
 
-
-```json
-
-{
-    'query_type' : 'image' 
-    'content':{
-                'image': None or image
-                }
-    'uid': char
-    'action':imagesearch (only)
-
-}
-
-```
-
-
-
-```json
-
-{
-    'query_type' : 'text'
-    'content':{
-                'text_query': None or str
-                }
-    'uid': char
-    'action':None -> 'imagesearch' or 'agent'  <- decided by llm
-
-}
-
-```
-
-
-
-
-
-
-
-
-
-
-# imagesearch
-
-if  `query_type = image` then `action = imagesearch`   automatically
-
-api `query/imageSearch`
-
-Steps:
-- i/p -> image  ;
-
-- retrieve top k items;
-
-- 0/p -> images(urls) + text
-
-output ->
-
-``` json
-{
-    'search_output':[
-                    {'image_url': "https://image1.com",    'image_desc':"brief description" , 'item_data':"categories , brands .etc"  },,
-
-                    {'image_url': "https://image2.com",  
-                      'image_desc':"black etc etc"} , 
-                    'item_data':"categories , brands .etc" },
-                    
-                    {'image_url': "https://image3.com",  
-                      'image_desc':"black etc etc"} ,
-                     'item_data':"categories , brands .etc" },
-                    ],
-
-
-}
-
-```
-
-
-
+This is the main query endpoint. Based on `query_type` and `action`, it delegates the request to image search or agent modules.
 
 ---
 
+## 🧾 Request Schemas
 
-if  `query_type = text` and `action = imagesearch`   
-
-api `query/textSearch`
-
-Steps:
-- i/p -> text  ;
-
-- retrieve top k items;
-
-- 0/p -> images(urls) + text
-
-output ->
-
-``` json
-{
-    'search_output':[
-                    {'image_url': "https://image1.com",    'image_desc':"brief description" , 'item_data':"categories , brands .etc"  },,
-
-                    {'image_url': "https://image2.com",  
-                      'image_desc':"black etc etc"} , 
-                    'item_data':"categories , brands .etc" },
-                    
-                    {'image_url': "https://image3.com",  
-                      'image_desc':"black etc etc"} ,
-                     'item_data':"categories , brands .etc" },
-                    ],
-
-
-}
-
-```
-
-
-
-
-
-# agent
-
-if `query_type = text` and `action = agent`
-
-Parse the old json to new json
-
-API endpoint : `query/agent`
-
-
-
->middle ware output - new Json
+### 🔹 1. Image Query
 
 ```json
-
 {
-    'query_type' : 'text'
-    'content':{
-                'text_query': None or str
-                }
-    'uid': char
-    'action':'agent'
-    'agent':'database' or 'history' or 'websearch'  <- decided by llm
-
+  "query_type": "image",
+  "content": {
+    "image": null  // or base64/image blob
+  },
+  "uid": "char",
+  "action": "imagesearch"
 }
-
 ```
 
+* `action` must always be `"imagesearch"` for image-based queries.
 
+---
 
-i/p text_query': None or str -> llm -> decide tool -> tool
-
-
-## 1. database agent
-
-API endpoint : `query/agent/databaseAgent`
-
-i/p text_query' +  datbase tool -> database call -> database items-> llm -> parsed content -> 0/p
-
-Agent Prompt:
-db schema  , framework(mongodb) +  uid + natural language query -llm-> code for database query
-
-
-## 2. history agent
-
-API endpoint : `query/agent/historyAgent`
-
-i/p text_query' + history tool -> history database call -> history items-> llm -> parsed content -> o/p
-
-
-## 3. Web Search agent
-
-API endpoint : `query/agent/webSearchAgent`
-
-i/p text_query' + wesearch tool -> light websearch from walmart website -> search items-> llm -> parsed content -> o/p
-
+### 🔹 2. Text Query
 
 ```json
-
 {
-    'agent_output':{
-                'llm_output' : str
-                'raw_output' : list or dict or str
-                },      
-
+  "query_type": "text",
+  "content": {
+    "text_query": "string or null"
+  },
+  "uid": "char",
+  "action": null  // or "imagesearch" or "agent" (decided by LLM)
 }
-
 ```
+
+* `action` is determined dynamically by an LLM based on the content.
+
+---
+
+# 🔍 Image Search
+
+## 1. If `query_type = image` and `action = imagesearch`
+
+**Endpoint:** `query/imageSearch`
+
+**Flow:**
+
+* Input: image
+* Operation: retrieve top-k items based on similarity
+* Output: images with descriptions and metadata
+
+### ✅ Response:
+
+```json
+{
+  "search_output": [
+    {
+      "image_url": "https://image1.com",
+      "image_desc": "brief description",
+      "item_data": "categories, brands, etc."
+    },
+    {
+      "image_url": "https://image2.com",
+      "image_desc": "black etc etc",
+      "item_data": "categories, brands, etc."
+    },
+    {
+      "image_url": "https://image3.com",
+      "image_desc": "black etc etc",
+      "item_data": "categories, brands, etc."
+    }
+  ]
+}
+```
+
+---
+
+## 2. If `query_type = text` and `action = imagesearch`
+
+**Endpoint:** `query/textSearch`
+
+**Flow:**
+
+* Input: text
+* Operation: perform text-based semantic search
+* Output: top-k image results with metadata
+
+### ✅ Response:
+
+(Same as image-based search)
+
+```json
+{
+  "search_output": [
+    {
+      "image_url": "https://image1.com",
+      "image_desc": "brief description",
+      "item_data": "categories, brands, etc."
+    },
+    {
+      "image_url": "https://image2.com",
+      "image_desc": "black etc etc",
+      "item_data": "categories, brands, etc."
+    },
+    {
+      "image_url": "https://image3.com",
+      "image_desc": "black etc etc",
+      "item_data": "categories, brands, etc."
+    }
+  ]
+}
+```
+
+---
+
+# 🧠 Agent (LLM-Driven)
+
+## If `query_type = text` and `action = agent`
+
+**Middleware parses input and adds `agent` field:**
+
+### 🔁 Transformed Input
+
+```json
+{
+  "query_type": "text",
+  "content": {
+    "text_query": "string or null"
+  },
+  "uid": "char",
+  "action": "agent",
+  "agent": "database" | "history" | "websearch"  // decided by LLM
+}
+```
+
+---
+
+## 🧩 Agent Endpoints
+
+### 1. `database` Agent
+
+**Endpoint:** `query/agent/databaseAgent`
+
+* Input: `text_query`
+* Operation: LLM converts text → database query using MongoDB schema → executes query → LLM parses output
+
+---
+
+### 2. `history` Agent
+
+**Endpoint:** `query/agent/historyAgent`
+
+* Input: `text_query`
+* Operation: LLM queries historical data → parses and formats output
+
+---
+
+### 3. `websearch` Agent
+
+**Endpoint:** `query/agent/webSearchAgent`
+
+* Input: `text_query`
+* Operation: LLM performs light web search (e.g., Walmart) → retrieves relevant items → parses and summarizes results
+
+---
+
+## ✅ Agent Response Format
+
+```json
+{
+  "agent_output": {
+    "llm_output": "summary or explanation",
+    "raw_output": "raw data (list, dict, or string)"
+  }
+}
+```
+
+---
+
+Let me know if you'd like this in a downloadable `README.md` format or integrated into an OpenAPI schema!

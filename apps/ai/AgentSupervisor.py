@@ -8,15 +8,12 @@
 
 
 from groq import Groq
-import asyncio
 from dotenv import load_dotenv
 import os
 try:
-    from .item_search_agent import imageSearch
     from .web_search_agent import webSearch
     from .database_agent import databaseSearch
 except:
-    from item_search_agent import imageSearch
     from web_search_agent import webSearch
     from database_agent import databaseSearch
     
@@ -24,13 +21,13 @@ from pprint import pprint
 
 
 
-load_dotenv(dotenv_path="./.env")
-
-
-
-
 
 import json
+
+
+
+load_dotenv(dotenv_path="./.env")
+
 
 
 
@@ -244,7 +241,7 @@ class SupervisorAgent:
     
     
     
-    def run_agents_loop(self , query_json ):
+    def run_agents_loop(self , query_json :dict) -> dict:
         
         query = query_json['content']['text_query']
         
@@ -269,41 +266,47 @@ class SupervisorAgent:
             "history_agent_output":None,
             "database_agent_output":None
                              }
-        
-        
-        
-        print("    -> Route to WebSearcher")
-    
-        search_agent_output = self.websearcher.get_search_results(query=query)
-        agent_raw_outputs["search_agent_output"] = search_agent_output["agent_output"]["raw_output"]
-        agent_llm_outputs["search_agent_output"] = search_agent_output["agent_output"]["llm_output"]
-        
-        
-        print("    -> Route to HistorySearcher")
-    
-        
-        history_agent_output = {
-                            'agent_output':{
-                                        "llm_output" : "None",
-                                        "raw_output" : "None"
-                                        },      
-                            }
-          
-        agent_raw_outputs["history_agent_output"] = history_agent_output["agent_output"]["raw_output"]
-        agent_llm_outputs["history_agent_output"] = history_agent_output["agent_output"]["llm_output"] 
             
-        print("    -> Route to Database Searcher")
-        
-        
-        database_agent_output = self.databasesearcher.search(natural_query=query)
-        
-        agent_raw_outputs["database_agent_output"] = database_agent_output["agent_output"]["raw_output"]
-        agent_llm_outputs["database_agent_output"] = database_agent_output["agent_output"]["llm_output"]  
-            
-            
-            
-            
-            
+        # --- Web Searcher ---
+        try:
+            print("    -> Route to WebSearcher")
+            search_agent_output = self.websearcher.get_search_results(query=query)
+            agent_raw_outputs["search_agent_output"] = search_agent_output["agent_output"]["raw_output"]
+            agent_llm_outputs["search_agent_output"] = search_agent_output["agent_output"]["llm_output"]
+        except Exception as e:
+            print(f"[Error] WebSearcher failed: {e}")
+            agent_raw_outputs["search_agent_output"] = None
+            agent_llm_outputs["search_agent_output"] = None
+
+        # --- History Searcher ---
+        try:
+            print("    -> Route to HistorySearcher")
+            # Assuming placeholder or default output here
+            history_agent_output = {
+                "agent_output": {
+                    "llm_output": "None",
+                    "raw_output": "None"
+                }
+            }
+            agent_raw_outputs["history_agent_output"] = history_agent_output["agent_output"]["raw_output"]
+            agent_llm_outputs["history_agent_output"] = history_agent_output["agent_output"]["llm_output"]
+        except Exception as e:
+            print(f"[Error] HistorySearcher failed: {e}")
+            agent_raw_outputs["history_agent_output"] = None
+            agent_llm_outputs["history_agent_output"] = None
+
+        # --- Database Searcher ---
+        try:
+            print("    -> Route to Database Searcher")
+            database_agent_output = self.databasesearcher.search(natural_query=query)
+            agent_raw_outputs["database_agent_output"] = database_agent_output["agent_output"]["raw_output"]
+            agent_llm_outputs["database_agent_output"] = database_agent_output["agent_output"]["llm_output"]
+        except Exception as e:
+            print(f"[Error] DatabaseSearcher failed: {e}")
+            agent_raw_outputs["database_agent_output"] = None
+            agent_llm_outputs["database_agent_output"] = None
+
+                
         agent_output["agent_output"]["raw_output"] = agent_raw_outputs
         agent_output["agent_output"]["llm_output"] = agent_llm_outputs
         
@@ -336,7 +339,7 @@ class SupervisorAgent:
         
         
         print(f"\nUser Query: \"{query}\"")
-        decision_result = supervisor.decide_agent(query = query)
+        decision_result = self.decide_agent(query = query)
         
         
         
