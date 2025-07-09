@@ -4,6 +4,7 @@ import { gql } from 'graphql-tag';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Product } from './models/Product';
+import cors from 'cors';
 
 async function connectDB(): Promise<void> {
   try {
@@ -26,7 +27,7 @@ const typeDefs = gql`
     subcategory: String!
     brand: String!
     description: String!
-    image: String
+    image: [String]
     price: Float!
     createdAt: String!
   }
@@ -37,12 +38,12 @@ const typeDefs = gql`
     subcategory: String!
     brand: String!
     description: String!
-    image: String
+    image: [String]
     price: Float
   }
 
   type Query {
-    products: [Product!]!
+    products(limit: Int, offset: Int): [Product!]!
     product(id: ID!): Product
     productsByCategory(category: String!): [Product!]!
     productsByBrand(brand: String!): [Product!]!
@@ -59,7 +60,10 @@ const typeDefs = gql`
 // GraphQL resolvers
 const resolvers = {
   Query: {
-    products: async () => await Product.find(),
+    products: async (_: any, args: { limit?: number; offset?: number }) => {
+      const { limit = 30, offset = 0 } = args;
+      return await Product.find().skip(offset).limit(limit);
+    },
     product: async (_: any, { id }: { id: string }) => await Product.findById(id),
     productsByCategory: async (_: any, { category }: { category: string }) => 
       await Product.find({ category }),
@@ -93,6 +97,11 @@ const resolvers = {
 async function startServer(): Promise<void> {
   await connectDB(); 
   const app = express();
+
+  app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+  }));
 
   const server = new ApolloServer({
     typeDefs,

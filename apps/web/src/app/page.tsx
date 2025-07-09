@@ -1,4 +1,52 @@
+<<<<<<< HEAD
 import Image from "next/image";
+=======
+'use client';
+
+import { Navbar } from '@/components/Navbar';
+import { ProductTile } from '@/components/ProductTile';
+import { ChatWidget } from '@/components/ChatWidget';
+
+const tiles = [
+  {
+    title: 'Save on premium haircare like Redken',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'col-span-1 row-span-2',
+  },
+  {
+    title: 'Lilo & Stitch toys & more',
+    bgColor: 'bg-[#E6F6FF]',
+    className: 'col-span-1',
+  },
+  {
+    title: 'Save big on hundreds of pet picks!',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'col-span-1',
+  },
+  {
+    title: "Premium beauty. Victoria's Secret.",
+    bgColor: 'bg-[#FFF6F0]',
+    className: 'col-span-1',
+  },
+  {
+    title: 'Up to 65% off',
+    bgColor: 'bg-[#FFF9E6]',
+    className: 'col-span-1',
+  },
+];
+
+const rightTiles = [
+  {
+    title: 'Summer home trends from $6',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'mb-6',
+  },
+  {
+    title: 'New Jurassic World movie, 7/2',
+    bgColor: 'bg-[#E6F6FF]',
+  },
+];
+>>>>>>> 425de99 (UI and API improvements: pagination, sidebar, carousel, and styling enhancements)
 
 export default function Home() {
   return (
