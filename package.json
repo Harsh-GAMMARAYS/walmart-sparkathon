@@ -11,15 +11,25 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "type-check": "turbo run type-check"
   },
-  "keywords": ["walmart", "sparkathon", "ai", "shopping", "assistant"],
+  "keywords": [
+    "walmart",
+    "sparkathon",
+    "ai",
+    "shopping",
+    "assistant"
+  ],
   "author": "Team Gamma, Vedika, Dristant, Manodeep",
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
-    "turbo": "^2.5.4",
-    "prettier": "^3.0.0",
     "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.2",
+    "turbo": "^2.5.4",
     "typescript": "^5.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "dependencies": {
+    "typesense": "^2.0.3"
+  }
 }

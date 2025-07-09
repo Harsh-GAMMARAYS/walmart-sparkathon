@@ -2,8 +2,9 @@
 
 import { useParams } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { SidebarFilter } from '@/components/SidebarFilter';
 
 const GET_PRODUCT = gql`
   query GetProduct($id: ID!) {
@@ -20,15 +21,49 @@ const GET_PRODUCT = gql`
   }
 `;
 
+const GET_ALL_PRODUCTS = gql`
+  query {
+    products(limit: 1000) {
+      id
+      category
+      brand
+      price
+    }
+  }
+`;
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const { data, loading, error } = useQuery(GET_PRODUCT, { variables: { id } });
+  const { data: allProductsData } = useQuery(GET_ALL_PRODUCTS);
   const [imgIdx, setImgIdx] = useState(0);
   const [fade, setFade] = useState(true);
 
   // Always define images, even if data is not ready yet
   const images = data?.product?.image || [];
   const hasMultipleImages = images.length > 1;
+
+  const categories = useMemo<string[]>(() => {
+    if (!allProductsData?.products) return [];
+    return Array.from(new Set(allProductsData.products.map((p: any) => p.category)));
+  }, [allProductsData]);
+  const brands = useMemo<string[]>(() => {
+    if (!allProductsData?.products) return [];
+    return Array.from(new Set(allProductsData.products.map((p: any) => p.brand)));
+  }, [allProductsData]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    );
+  };
 
   // Prefetch all images
   useEffect(() => {
@@ -62,8 +97,18 @@ export default function ProductDetailPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
-        <div className="min-h-screen flex items-center justify-center py-8 px-2">
+      <main className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-200">
+        <SidebarFilter
+          categories={categories}
+          brands={brands}
+          selectedCategories={selectedCategories}
+          selectedBrands={selectedBrands}
+          priceRange={priceRange}
+          toggleCategory={toggleCategory}
+          toggleBrand={toggleBrand}
+          setPriceRange={setPriceRange}
+        />
+        <div className="flex-1 flex items-center justify-center py-8 px-2">
           <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center">
             <h1 className="text-3xl font-extrabold text-gray-900 mb-6 text-center leading-tight">{product.title}</h1>
             {images.length > 0 && (

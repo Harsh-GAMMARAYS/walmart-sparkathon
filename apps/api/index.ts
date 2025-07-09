@@ -5,6 +5,7 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Product } from './models/Product';
 import cors from 'cors';
+import Typesense from 'typesense';
 
 async function connectDB(): Promise<void> {
   try {
@@ -30,6 +31,15 @@ const typeDefs = gql`
     image: [String]
     price: Float!
     createdAt: String!
+    tags: [String]
+    color: String
+  }
+
+  type ProductSuggestion {
+    id: ID!
+    title: String!
+    brand: String!
+    category: String!
   }
 
   input ProductInput {
@@ -40,6 +50,8 @@ const typeDefs = gql`
     description: String!
     image: [String]
     price: Float
+    tags: [String]
+    color: String
   }
 
   type Query {
@@ -48,6 +60,7 @@ const typeDefs = gql`
     productsByCategory(category: String!): [Product!]!
     productsByBrand(brand: String!): [Product!]!
     searchProducts(query: String!): [Product!]!
+    productSuggestions(query: String!): [ProductSuggestion!]!
   }
 
   type Mutation {
@@ -56,6 +69,18 @@ const typeDefs = gql`
     deleteProduct(id: ID!): Boolean!
   }
 `;
+
+const typesenseClient = new Typesense.Client({
+  nodes: [
+    {
+      host: 'localhost',
+      port: 8108,
+      protocol: 'http',
+    },
+  ],
+  apiKey: 'xyz',
+  connectionTimeoutSeconds: 10,
+});
 
 // GraphQL resolvers
 const resolvers = {
@@ -69,14 +94,29 @@ const resolvers = {
       await Product.find({ category }),
     productsByBrand: async (_: any, { brand }: { brand: string }) => 
       await Product.find({ brand }),
-    searchProducts: async (_: any, { query }: { query: string }) => 
-      await Product.find({
-        $or: [
-          { title: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } },
-          { brand: { $regex: query, $options: 'i' } }
-        ]
-      })
+    searchProducts: async (_: any, { query }: { query: string }) => {
+      if (!query || query.trim() === "") return [];
+      const searchResults = await typesenseClient.collections('products').documents().search({
+        q: query,
+        query_by: 'title,description,brand,category,subcategory,tags,color',
+        per_page: 40,
+      });
+      return (searchResults.hits || []).map((hit: any) => hit.document);
+    },
+    productSuggestions: async (_: any, { query }: { query: string }) => {
+      if (!query || query.trim() === "") return [];
+      const suggestResults = await typesenseClient.collections('products').documents().search({
+        q: query,
+        query_by: 'title,brand,category,tags,color',
+        per_page: 10,
+      });
+      return (suggestResults.hits || []).map((hit: any) => ({
+        id: hit.document.id,
+        title: hit.document.title,
+        brand: hit.document.brand,
+        category: hit.document.category,
+      }));
+    }
   },
   Mutation: {
     createProduct: async (_: any, { input }: { input: any }) => {

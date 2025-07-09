@@ -3,9 +3,75 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { gql, useLazyQuery } from '@apollo/client';
+import { useRef, useEffect } from 'react';
+
+const PRODUCT_SUGGESTIONS = gql`
+  query ProductSuggestions($query: String!) {
+    productSuggestions(query: $query) {
+      id
+      title
+      brand
+      category
+    }
+  }
+`;
 
 export function Navbar() {
   const [searchValue, setSearchValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIdx, setHighlightedIdx] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [fetchSuggestions, { data, loading }] = useLazyQuery(PRODUCT_SUGGESTIONS, {
+    fetchPolicy: 'no-cache',
+  });
+
+  // Debounce search input
+  useEffect(() => {
+    if (!searchValue) return;
+    const handler = setTimeout(() => {
+      fetchSuggestions({ variables: { query: searchValue } });
+      setShowSuggestions(true);
+    }, 200);
+    return () => clearTimeout(handler);
+  }, [searchValue, fetchSuggestions]);
+
+  // Hide suggestions on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+        setHighlightedIdx(-1);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleSuggestionClick = (id: string) => {
+    window.location.href = `/products/${id}`;
+    setShowSuggestions(false);
+  };
+
+  const highlightMatch = (text: string) => {
+    if (!searchValue) return text;
+    const idx = text.toLowerCase().indexOf(searchValue.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <span className="bg-yellow-200 text-blue-900 font-bold">{text.slice(idx, idx + searchValue.length)}</span>
+        {text.slice(idx + searchValue.length)}
+      </>
+    );
+  };
 
   const handleAISearch = async () => {
     // TODO: Replace with your actual AI server endpoint
@@ -16,6 +82,35 @@ export function Navbar() {
     });
     // Optionally handle response or show a toast
   };
+
+  const handleSearch = () => {
+    if (highlightedIdx >= 0 && data?.productSuggestions?.[highlightedIdx]) {
+      window.location.href = `/products/${data.productSuggestions[highlightedIdx].id}`;
+    } else if (searchValue.trim()) {
+      window.location.href = `/search?query=${encodeURIComponent(searchValue.trim())}`;
+    }
+    setShowSuggestions(false);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!showSuggestions) return;
+    function handleKey(e: KeyboardEvent) {
+      if (!data?.productSuggestions?.length && e.key === 'Enter') {
+        handleSearch();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        setHighlightedIdx(idx => Math.min(idx + 1, data?.productSuggestions?.length - 1 || 0));
+      } else if (e.key === 'ArrowUp') {
+        setHighlightedIdx(idx => Math.max(idx - 1, 0));
+      } else if (e.key === 'Enter') {
+        handleSearch();
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showSuggestions, data, highlightedIdx, searchValue]);
 
   return (
     <>
@@ -37,13 +132,16 @@ export function Navbar() {
             <svg width="20" height="20" fill="currentColor" className="ml-2 text-gray-200" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.085l3.71-3.855a.75.75 0 1 1 1.08 1.04l-4.24 4.4a.75.75 0 0 1-1.08 0l-4.24-4.4a.75.75 0 0 1 .02-1.06z" clipRule="evenodd"/></svg>
           </button>
           {/* Search Bar */}
-          <form className="flex-1 flex items-center bg-white rounded-full shadow px-6 h-12 mx-2 max-w-7xl min-w-[400px]">
+          <form className="flex-1 flex items-center bg-white rounded-full shadow px-6 h-12 mx-2 max-w-7xl min-w-[400px]" autoComplete="off" onSubmit={e => { e.preventDefault(); handleSearch(); }}>
             <input
+              ref={inputRef}
               type="text"
               placeholder="Search everything at Walmart online and in store"
               className="flex-1 bg-transparent outline-none text-[#0071dc] placeholder-[#0071dc] text-base px-2"
               value={searchValue}
               onChange={e => setSearchValue(e.target.value)}
+              onFocus={() => { if (searchValue) setShowSuggestions(true); }}
+              autoComplete="off"
             />
             {/* Normal search button */}
             <button type="submit" className="flex items-center justify-center w-10 h-10 bg-[#032684] rounded-full ml-2 hover:bg-blue-700 transition">
@@ -59,6 +157,28 @@ export function Navbar() {
               <img src="/ai-icon.svg" alt="AI" className="w-5 h-5" />
               <span>AI Search</span>
             </button>
+            {/* Suggestions Dropdown */}
+            {showSuggestions && searchValue && (
+              <div ref={dropdownRef} className="absolute left-1/2 -translate-x-1/2 top-14 w-[500px] bg-white border border-blue-100 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
+                {loading && (
+                  <div className="p-4 text-center text-gray-500">Searching...</div>
+                )}
+                {!loading && data?.productSuggestions?.length === 0 && (
+                  <div className="p-4 text-center text-gray-400">No results found</div>
+                )}
+                {!loading && data?.productSuggestions?.map((s: any, idx: number) => (
+                  <div
+                    key={s.id}
+                    className={`px-5 py-3 cursor-pointer flex flex-col border-b last:border-b-0 transition ${idx === highlightedIdx ? 'bg-blue-100' : 'hover:bg-blue-50'}`}
+                    onMouseDown={() => handleSuggestionClick(s.id)}
+                    onMouseEnter={() => setHighlightedIdx(idx)}
+                  >
+                    <span className="font-semibold text-blue-900 text-base">{highlightMatch(s.title)}</span>
+                    <span className="text-xs text-gray-500">{highlightMatch(s.brand)} &middot; {highlightMatch(s.category)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
           {/* Right Section */}
           <div className="flex items-center gap-8 min-w-fit h-12">
