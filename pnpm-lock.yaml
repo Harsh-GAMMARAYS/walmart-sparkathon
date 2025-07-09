@@ -87,6 +87,9 @@ importers:
       parquetjs-lite:
         specifier: ^0.8.7
         version: 0.8.7
+      typesense:
+        specifier: ^2.0.3
+        version: 2.0.3(@babel/runtime@7.27.6)
     devDependencies:
       '@types/cors':
         specifier: ^2.8.19
