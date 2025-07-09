@@ -1,3 +1,5 @@
+'use client';
+
 import { Navbar } from '@/components/Navbar';
 import { ProductTile } from '@/components/ProductTile';
 import { ChatWidget } from '@/components/ChatWidget';

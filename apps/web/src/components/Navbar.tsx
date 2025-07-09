@@ -19,7 +19,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="bg-[#0071dc] w-full shadow z-50">
+      <header className="bg-[#0071dc] w-full shadow sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 lg:px-8 py-4 gap-x-2">
           {/* Logo */}
           <Link href="/" className="flex items-center">
@@ -90,7 +90,7 @@ export function Navbar() {
         </div>
       </header>
       {/* Category Bar */}
-      <nav className="w-full bg-[#F0F4FE] border-t border-blue-100">
+      <nav className="w-full bg-[#F0F4FE] border-t border-blue-100 sticky top-[80px] z-40">
         <ul className="flex items-center gap-9 px-8 py-3 text-xs font-medium text-[#0F367A] whitespace-nowrap overflow-x-auto">
           <li className="flex items-center gap-1 cursor-pointer font-bold hover:underline">
             {/* Grid icon */}
