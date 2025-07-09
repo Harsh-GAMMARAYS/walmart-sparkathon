@@ -26,9 +26,88 @@ importers:
       '@apollo/client':
         specifier: ^3.13.8
         version: 3.13.8(@types/react@19.1.8)(graphql@16.11.0)(react-dom@19.1.0)(react@19.1.0)
+<<<<<<< HEAD
       graphql:
         specifier: ^16.11.0
         version: 16.11.0
+=======
+      '@huggingface/hub':
+        specifier: ^2.2.0
+        version: 2.2.0
+      '@types/multer':
+        specifier: ^1.4.13
+        version: 1.4.13
+      '@types/node-fetch':
+        specifier: ^2.6.12
+        version: 2.6.12
+      apache-arrow:
+        specifier: ^20.0.0
+        version: 20.0.0
+      apollo-server-express:
+        specifier: ^3.12.1
+        version: 3.13.0(express@4.21.2)(graphql@16.11.0)
+      cloudinary:
+        specifier: ^2.6.1
+        version: 2.6.1
+      cors:
+        specifier: ^2.8.5
+        version: 2.8.5
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
+      express:
+        specifier: ^4.18.2
+        version: 4.21.2
+      graphql:
+        specifier: ^16.11.0
+        version: 16.11.0
+      graphql-tag:
+        specifier: ^2.12.6
+        version: 2.12.6(graphql@16.11.0)
+      mongoose:
+        specifier: ^8.0.3
+        version: 8.15.2
+      multer:
+        specifier: ^2.0.1
+        version: 2.0.1
+      multer-storage-cloudinary:
+        specifier: ^4.0.0
+        version: 4.0.0(cloudinary@2.6.1)
+      node-fetch:
+        specifier: '2'
+        version: 2.7.0
+      parquet-wasm:
+        specifier: ^0.6.1
+        version: 0.6.1
+      parquetjs:
+        specifier: ^0.11.2
+        version: 0.11.2
+      parquetjs-lite:
+        specifier: ^0.8.7
+        version: 0.8.7
+    devDependencies:
+      '@types/cors':
+        specifier: ^2.8.19
+        version: 2.8.19
+      '@types/express':
+        specifier: ^4.17.23
+        version: 4.17.23
+      '@types/mongoose':
+        specifier: ^5.11.97
+        version: 5.11.97
+      '@types/node':
+        specifier: ^20.10.5
+        version: 20.19.0
+      nodemon:
+        specifier: ^3.0.2
+        version: 3.1.10
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.19.0)(typescript@5.8.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+>>>>>>> 425de99 (UI and API improvements: pagination, sidebar, carousel, and styling enhancements)
 
   apps/web:
     dependencies:
@@ -816,6 +895,44 @@ packages:
     dev: true
     optional: true
 
+<<<<<<< HEAD
+=======
+  /@types/accepts@1.3.7:
+    resolution: {integrity: sha512-Pay9fq2lM2wXPWbteBsRAGiWH2hig4ZE2asK+mm7kUzlxRTfL961rj89I6zV/E3PcIkDqyuBEcMxFT7rccugeQ==}
+    dependencies:
+      '@types/node': 20.19.0
+    dev: false
+
+  /@types/body-parser@1.19.2:
+    resolution: {integrity: sha512-ALYone6pm6QmwZoAgeyNksccT9Q4AWZQ6PvfwR37GT6r6FWUPguq6sUmNGSMV2Wr761oQoBxwGGa6DR5o1DC9g==}
+    dependencies:
+      '@types/connect': 3.4.38
+      '@types/node': 20.19.0
+
+  /@types/command-line-args@5.2.3:
+    resolution: {integrity: sha512-uv0aG6R0Y8WHZLTamZwtfsDLVRnOa+n+n5rEvFWL5Na5gZ8V2Teab/duDPFzIIIhs9qizDpcavCusCLJZu62Kw==}
+    dev: false
+
+  /@types/command-line-usage@5.0.4:
+    resolution: {integrity: sha512-BwR5KP3Es/CSht0xqBcUXS3qCAUVXwpRKsV2+arxeb65atasuXG9LykC9Ab10Cw3s2raH92ZqOeILaQbsB2ACg==}
+    dev: false
+
+  /@types/connect@3.4.38:
+    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+    dependencies:
+      '@types/node': 20.19.0
+
+  /@types/cors@2.8.12:
+    resolution: {integrity: sha512-vt+kDhq/M2ayberEtJcIN/hxXy1Pk+59g2FV/ZQceeaTyCtCucjL2Q7FXlFjtWn4n15KCr1NE2lNNFhp0lEThw==}
+    dev: false
+
+  /@types/cors@2.8.19:
+    resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
+    dependencies:
+      '@types/node': 20.19.0
+    dev: true
+
+>>>>>>> 425de99 (UI and API improvements: pagination, sidebar, carousel, and styling enhancements)
   /@types/estree@1.0.8:
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
     dev: true
