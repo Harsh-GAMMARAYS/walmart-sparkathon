@@ -3,4 +3,5 @@ dist
 .next
 .env
 .turbo
+typesense-data/
 

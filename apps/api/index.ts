@@ -4,6 +4,8 @@ import { gql } from 'graphql-tag';
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Product } from './models/Product';
+import cors from 'cors';
+import Typesense from 'typesense';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import aiRoutes from './routes/ai';
@@ -30,9 +32,39 @@ const typeDefs = gql`
     subcategory: String!
     brand: String!
     description: String!
-    image: String
+    image: [String]
     price: Float!
     createdAt: String!
+    tags: [String]
+    color: String
+  }
+
+  type ProductSuggestion {
+    id: ID!
+    title: String!
+    brand: String!
+    category: String!
+  }
+
+  type AIProduct {
+    id: ID!
+    title: String!
+    category: String!
+    subcategory: String!
+    brand: String!
+    description: String!
+    image: [String]
+    price: Float!
+    createdAt: String!
+    tags: [String]
+    color: String
+  }
+
+  type ProductSuggestion {
+    id: ID!
+    title: String!
+    brand: String!
+    category: String!
   }
 
   type AIProduct {
@@ -71,8 +103,10 @@ const typeDefs = gql`
     subcategory: String!
     brand: String!
     description: String!
-    image: String
+    image: [String]
     price: Float
+    tags: [String]
+    color: String
   }
 
   input UserPreferencesInput {
@@ -94,11 +128,12 @@ const typeDefs = gql`
   }
 
   type Query {
-    products: [Product!]!
+    products(limit: Int, offset: Int): [Product!]!
     product(id: ID!): Product
     productsByCategory(category: String!): [Product!]!
     productsByBrand(brand: String!): [Product!]!
     searchProducts(query: String!): [Product!]!
+    productSuggestions(query: String!): [ProductSuggestion!]!
   }
 
   type Mutation {
@@ -111,23 +146,50 @@ const typeDefs = gql`
   }
 `;
 
+const typesenseClient = new Typesense.Client({
+  nodes: [
+    {
+      host: 'localhost',
+      port: 8108,
+      protocol: 'http',
+    },
+  ],
+  apiKey: 'xyz',
+  connectionTimeoutSeconds: 10,
+});
+
 // GraphQL resolvers
 const resolvers = {
   Query: {
-    products: async () => await Product.find(),
+    products: async (_: any, args: { limit?: number; offset?: number }) => {
+      const { limit = 30, offset = 0 } = args;
+      return await Product.find().skip(offset).limit(limit);
+    },
     product: async (_: any, { id }: { id: string }) => await Product.findById(id),
-    productsByCategory: async (_: any, { category }: { category: string }) => 
-      await Product.find({ category }),
-    productsByBrand: async (_: any, { brand }: { brand: string }) => 
-      await Product.find({ brand }),
-    searchProducts: async (_: any, { query }: { query: string }) => 
-      await Product.find({
-        $or: [
-          { title: { $regex: query, $options: 'i' } },
-          { description: { $regex: query, $options: 'i' } },
-          { brand: { $regex: query, $options: 'i' } }
-        ]
-      })},
+    searchProducts: async (_: any, { query }: { query: string }) => {
+      if (!query || query.trim() === "") return [];
+      const searchResults = await typesenseClient.collections('products').documents().search({
+        q: query,
+        query_by: 'title,description,brand,category,subcategory,tags,color',
+        per_page: 40,
+      });
+      return (searchResults.hits || []).map((hit: any) => hit.document);
+    },
+    productSuggestions: async (_: any, { query }: { query: string }) => {
+      if (!query || query.trim() === "") return [];
+      const suggestResults = await typesenseClient.collections('products').documents().search({
+        q: query,
+        query_by: 'title,brand,category,tags,color',
+        per_page: 10,
+      });
+      return (suggestResults.hits || []).map((hit: any) => ({
+        id: hit.document.id,
+        title: hit.document.title,
+        brand: hit.document.brand,
+        category: hit.document.category,
+      }));
+    }
+  },
   Mutation: {
     createProduct: async (_: any, { input }: { input: any }) => {
       const newProduct = new Product(input);
@@ -236,6 +298,11 @@ const resolvers = {
 async function startServer(): Promise<void> {
   await connectDB(); 
   const app = express();
+
+  app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+  }));
 
   app.use(express.json());
   app.use('/auth', authRoutes);

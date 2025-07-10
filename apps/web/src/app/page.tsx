@@ -1,103 +1,73 @@
-import Image from "next/image";
+'use client';
+
+import { Navbar } from '@/components/Navbar';
+import { ProductTile } from '@/components/ProductTile';
+import { ChatWidget } from '@/components/ChatWidget';
+
+const tiles = [
+  {
+    title: 'Save on premium haircare like Redken',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'col-span-1 row-span-2',
+  },
+  {
+    title: 'Lilo & Stitch toys & more',
+    bgColor: 'bg-[#E6F6FF]',
+    className: 'col-span-1',
+  },
+  {
+    title: 'Save big on hundreds of pet picks!',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'col-span-1',
+  },
+  {
+    title: "Premium beauty. Victoria's Secret.",
+    bgColor: 'bg-[#FFF6F0]',
+    className: 'col-span-1',
+  },
+  {
+    title: 'Up to 65% off',
+    bgColor: 'bg-[#FFF9E6]',
+    className: 'col-span-1',
+  },
+];
+
+const rightTiles = [
+  {
+    title: 'Summer home trends from $6',
+    bgColor: 'bg-[#F0F4FE]',
+    className: 'mb-6',
+  },
+  {
+    title: 'New Jurassic World movie, 7/2',
+    bgColor: 'bg-[#E6F6FF]',
+  },
+];
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <>
+      <Navbar />
+      <main className="flex-1 bg-white min-h-screen px-6 py-8">
+        <div className="grid grid-cols-4 gap-6">
+          <ProductTile {...tiles[0]} />
+          <div className="col-span-2 row-span-2 bg-[#FFF6F0] rounded-xl p-6 flex flex-col justify-between">
+            <div className="bg-white rounded-lg h-32 mb-4"></div>
+            <div className="text-3xl font-extrabold text-[#222] mb-2">Suncare is self-care</div>
+            <a href="#" className="inline-block bg-white text-[#222] font-semibold rounded-full px-4 py-2 shadow hover:bg-gray-100 mb-4">Shop now</a>
+            <div className="text-lg font-bold text-[#222]">From $11</div>
+          </div>
+          {tiles.slice(1).map((tile, idx) => (
+            <ProductTile key={tile.title} {...tile} />
+          ))}
+          <div className="col-span-1 row-span-2 flex flex-col gap-6">
+            {rightTiles.map((tile, idx) => (
+              <ProductTile key={tile.title} {...tile} />
+            ))}
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <ChatWidget />
+    </>
   );
 }
