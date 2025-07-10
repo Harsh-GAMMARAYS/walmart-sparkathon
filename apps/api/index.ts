@@ -99,7 +99,6 @@ const typeDefs = gql`
     productsByCategory(category: String!): [Product!]!
     productsByBrand(brand: String!): [Product!]!
     searchProducts(query: String!): [Product!]!
-    aiServiceHealth: AIServiceHealth!
   }
 
   type Mutation {
