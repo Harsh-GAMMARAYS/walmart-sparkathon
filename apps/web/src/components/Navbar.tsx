@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { gql, useLazyQuery } from '@apollo/client';
 import { useRef, useEffect } from 'react';
+import { DEPARTMENT_MAPPING } from '@/utils/departments';
 
 const PRODUCT_SUGGESTIONS = gql`
   query ProductSuggestions($query: String!) {
@@ -20,9 +21,11 @@ const PRODUCT_SUGGESTIONS = gql`
 export function Navbar() {
   const [searchValue, setSearchValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDepartments, setShowDepartments] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const departmentsRef = useRef<HTMLDivElement>(null);
 
   const [fetchSuggestions, { data, loading }] = useLazyQuery(PRODUCT_SUGGESTIONS, {
     fetchPolicy: 'no-cache',
@@ -55,9 +58,28 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  // Hide departments dropdown on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (departmentsRef.current && !departmentsRef.current.contains(e.target as Node)) {
+        setShowDepartments(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   const handleSuggestionClick = (id: string) => {
     window.location.href = `/products/${id}`;
     setShowSuggestions(false);
+  };
+
+  const handleDepartmentClick = (department: string) => {
+    // Navigate to products page with department filter
+    const params = new URLSearchParams();
+    params.set('department', department);
+    window.location.href = `/products?${params.toString()}`;
+    setShowDepartments(false);
   };
 
   const highlightMatch = (text: string) => {
@@ -212,12 +234,46 @@ export function Navbar() {
       {/* Category Bar */}
       <nav className="w-full bg-[#F0F4FE] border-t border-blue-100 sticky top-[80px] z-40">
         <ul className="flex items-center gap-9 px-8 py-3 text-xs font-medium text-[#0F367A] whitespace-nowrap overflow-x-auto">
-          <li className="flex items-center gap-1 cursor-pointer font-bold hover:underline">
-            {/* Grid icon */}
-            <svg className="w-5 h-5" fill="none" stroke="#222" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            Departments
-            {/* Chevron icon */}
-            <svg className="w-4 h-4" fill="none" stroke="#222" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          <li className="relative">
+            <div ref={departmentsRef}>
+              <button 
+                className="flex items-center gap-1 cursor-pointer font-bold hover:underline"
+                onClick={() => setShowDepartments(!showDepartments)}
+              >
+                {/* Grid icon */}
+                <svg className="w-5 h-5" fill="none" stroke="#222" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Departments
+                {/* Chevron icon */}
+                <svg className={`w-4 h-4 transition-transform ${showDepartments ? 'rotate-180' : ''}`} fill="none" stroke="#222" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              
+                          {/* Departments Dropdown */}
+            {showDepartments && (
+              <div className="fixed top-[120px] left-8 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-[60] max-h-96 overflow-y-auto">
+                <div className="p-4">
+                  <h3 className="font-bold text-sm text-gray-900 mb-3">Shop by Department</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {Object.keys(DEPARTMENT_MAPPING).map((department) => (
+                      <button
+                        key={department}
+                        onClick={() => handleDepartmentClick(department)}
+                        className="text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded transition-colors"
+                      >
+                        {department}
+                      </button>
+                    ))}
+                    <Link 
+                      href="/products" 
+                      className="text-left px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors border-t border-gray-200 mt-2 pt-3"
+                      onClick={() => setShowDepartments(false)}
+                    >
+                      View All Products →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+            </div>
           </li>
           <li className="flex items-center gap-1 cursor-pointer font-bold hover:underline">
             {/* Grid icon */}
