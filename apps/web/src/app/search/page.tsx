@@ -136,7 +136,7 @@ export default function SearchPage() {
         />
         <div className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold tracking-tight text-blue-700 dark:text-blue-400 mb-8">
-            Search Results for "{query}"
+            Search Results for &quot;{query}&quot;
           </h1>
           {loading && <p>Loading...</p>}
           {error && <p className="text-red-500">Error: {error.message}</p>}

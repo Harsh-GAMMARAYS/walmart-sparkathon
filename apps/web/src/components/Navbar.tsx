@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { gql, useLazyQuery } from '@apollo/client';
 import { useRef, useEffect } from 'react';
 import { DEPARTMENT_MAPPING } from '@/utils/departments';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const PRODUCT_SUGGESTIONS = gql`
   query ProductSuggestions($query: String!) {
@@ -26,6 +28,9 @@ export function Navbar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const departmentsRef = useRef<HTMLDivElement>(null);
+  
+  const { user, cartItemsCount, cartTotal, logout, trackSearch } = useAuth();
+  const router = useRouter();
 
   const [fetchSuggestions, { data, loading }] = useLazyQuery(PRODUCT_SUGGESTIONS, {
     fetchPolicy: 'no-cache',
@@ -109,9 +114,27 @@ export function Navbar() {
     if (highlightedIdx >= 0 && data?.productSuggestions?.[highlightedIdx]) {
       window.location.href = `/products/${data.productSuggestions[highlightedIdx].id}`;
     } else if (searchValue.trim()) {
+      trackSearch(searchValue.trim());
       window.location.href = `/search?query=${encodeURIComponent(searchValue.trim())}`;
     }
     setShowSuggestions(false);
+  };
+
+  const handleSignIn = () => {
+    router.push('/auth/signin');
+  };
+
+  const handleAccountClick = () => {
+    if (user) {
+      router.push('/account/profile');
+    } else {
+      router.push('/auth/signin');
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
   };
 
   // Keyboard navigation
@@ -213,20 +236,63 @@ export function Navbar() {
               </div>
             </Link>
             {/* Sign In/Account */}
-            <Link href="#" className="flex items-center gap-2 group">
-              <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24" className="w-5 h-5 text-blue-400 group-hover:text-blue-200" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
-              <div className="flex flex-col leading-tight">
-                <span className="text-xs text-gray-100">Sign In</span>
-                <span className="text-sm font-bold text-white group-hover:text-blue-200">Account</span>
+            {user ? (
+              <div className="relative group">
+                <button 
+                  onClick={handleAccountClick}
+                  className="flex items-center gap-2 group cursor-pointer"
+                >
+                  <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24" className="w-5 h-5 text-blue-400 group-hover:text-blue-200" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs text-gray-100">Welcome back</span>
+                    <span className="text-sm font-bold text-white group-hover:text-blue-200 truncate max-w-24">
+                      {user.name.split(' ')[0]}
+                    </span>
+                  </div>
+                </button>
+                {/* Account Dropdown */}
+                <div className="invisible group-hover:visible absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                  <Link href="/account/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    My Profile
+                  </Link>
+                  <Link href="/account/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Order History
+                  </Link>
+                  <Link href="/account/favorites" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Favorites
+                  </Link>
+                  <hr className="my-1" />
+                  <button 
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
-            </Link>
+            ) : (
+              <button 
+                onClick={handleSignIn}
+                className="flex items-center gap-2 group cursor-pointer"
+              >
+                <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24" className="w-5 h-5 text-blue-400 group-hover:text-blue-200" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs text-gray-100">Sign In</span>
+                  <span className="text-sm font-bold text-white group-hover:text-blue-200">Account</span>
+                </div>
+              </button>
+            )}
             {/* Cart */}
-            <Link href="#" className="flex items-center gap-2 relative group">
+            <Link href="/cart" className="flex items-center gap-2 relative group">
               <div className="relative">
                 <svg width="26" height="26" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24" className="w-6 h-6 text-blue-400 group-hover:text-blue-200" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                <span className="absolute -top-2 -right-2 bg-yellow-400 text-xs font-bold text-[#0071dc] rounded-full px-1.5">0</span>
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-yellow-400 text-xs font-bold text-[#0071dc] rounded-full px-1.5 min-w-[20px] text-center">
+                    {cartItemsCount}
+                  </span>
+                )}
               </div>
-              <span className="text-sm font-bold text-white ml-1">$0.00</span>
+              <span className="text-sm font-bold text-white ml-1">${cartTotal.toFixed(2)}</span>
             </Link>
           </div>
         </div>
@@ -249,7 +315,7 @@ export function Navbar() {
               
                           {/* Departments Dropdown */}
             {showDepartments && (
-              <div className="fixed top-[120px] left-8 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-[60] max-h-96 overflow-y-auto">
+              <div className="fixed top-[120px] left-8 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-[60]">
                 <div className="p-4">
                   <h3 className="font-bold text-sm text-gray-900 mb-3">Shop by Department</h3>
                   <div className="grid grid-cols-1 gap-2">

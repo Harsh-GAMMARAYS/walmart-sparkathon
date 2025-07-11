@@ -1,9 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { gql, useQuery } from '@apollo/client';
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { useAuth } from '@/contexts/AuthContext';
 import { ChatWidget } from '@/components/ChatWidget';
 import Link from 'next/link';
 import { getDepartmentForCategory } from '@/utils/departments';
@@ -51,9 +52,11 @@ const GET_ALL_PRODUCTS_FOR_FALLBACK = gql`
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const { data, loading, error } = useQuery(GET_PRODUCT, { variables: { id } });
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const { user, addToCart, trackProductView, isLoading: authLoading } = useAuth();
 
   const product = data?.product;
   const images = product?.image || [];
@@ -139,6 +142,40 @@ export default function ProductDetailPage() {
       img.src = url;
     });
   }, [images]);
+
+  // Track product view
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      trackProductView(id);
+    }
+  }, [id]); // Remove trackProductView from dependencies to avoid infinite loop
+
+  const handleAddToCart = () => {
+    if (authLoading) return;
+
+    if (!user) {
+      // Redirect to sign in with return URL
+      const returnUrl = encodeURIComponent(`/products/${id}`);
+      router.push(`/auth/signin?returnTo=${returnUrl}`);
+      return;
+    }
+
+    if (product) {
+      // Add product with quantity
+      for (let i = 0; i < quantity; i++) {
+        addToCart(product);
+      }
+      // Optional: Show success message
+      alert(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart!`);
+    }
+  };
+
+  const handleCreateAccount = () => {
+    if (authLoading) return;
+    
+    const returnUrl = encodeURIComponent(`/products/${id}`);
+    router.push(`/auth/signup?returnTo=${returnUrl}`);
+  };
 
   if (loading) {
     return (
@@ -280,9 +317,44 @@ export default function ProductDetailPage() {
                   </div>
 
                   {/* Add to Cart Button */}
-                  <button className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors mb-4">
-                    Add to cart
+                  <button 
+                    onClick={handleAddToCart}
+                    disabled={authLoading}
+                    className={`w-full font-bold py-3 px-4 rounded-lg transition-colors mb-4 flex items-center justify-center gap-2 ${
+                      authLoading 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {authLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13v6a1 1 0 001 1h9a1 1 0 001-1v-6"/>
+                          <circle cx="9" cy="21" r="1"/>
+                          <circle cx="20" cy="21" r="1"/>
+                        </svg>
+                        {user ? 'Add to cart' : 'Sign in to Add to Cart'}
+                      </>
+                    )}
                   </button>
+                  
+                  {!user && !authLoading && (
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <button 
+                          onClick={handleCreateAccount}
+                          className="text-blue-600 hover:text-blue-700 underline font-medium"
+                        >
+                          Create an account
+                        </button> to save items and checkout faster
+                      </p>
+                    </div>
+                  )}
 
                   {/* Try on Virtually Button - Only for Clothing */}
                   {product && isClothingItem(product.category) && (
@@ -375,11 +447,25 @@ export default function ProductDetailPage() {
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
-                          // Add to cart logic here
+                          
+                          if (authLoading) return;
+                          
+                          if (!user) {
+                            const returnUrl = encodeURIComponent(`/products/${product.id}`);
+                            router.push(`/auth/signin?returnTo=${returnUrl}`);
+                          } else {
+                            addToCart(product);
+                            alert('Added to cart!');
+                          }
                         }}
-                        className="w-full bg-blue-600 text-white font-medium py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors text-sm mt-2"
+                        disabled={authLoading}
+                        className={`w-full font-medium py-2 px-3 rounded-lg transition-colors text-sm mt-2 ${
+                          authLoading 
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
                       >
-                        Add to cart
+                        {authLoading ? 'Loading...' : (user ? 'Add to cart' : 'Sign in to add')}
                       </button>
                     </div>
                   </div>

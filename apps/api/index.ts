@@ -58,25 +58,6 @@ const typeDefs = gql`
     createdAt: String!
     tags: [String]
     color: String
-  }
-
-  type ProductSuggestion {
-    id: ID!
-    title: String!
-    brand: String!
-    category: String!
-  }
-
-  type AIProduct {
-    id: ID!
-    title: String!
-    category: String!
-    subcategory: String!
-    brand: String!
-    description: String!
-    image: String
-    price: Float!
-    createdAt: String!
     aiConfidence: Float
     aiReason: String
   }
@@ -166,6 +147,10 @@ const resolvers = {
       return await Product.find().skip(offset).limit(limit);
     },
     product: async (_: any, { id }: { id: string }) => await Product.findById(id),
+    productsByCategory: async (_: any, { category }: { category: string }) => 
+      await Product.find({ category }),
+    productsByBrand: async (_: any, { brand }: { brand: string }) => 
+      await Product.find({ brand }),
     searchProducts: async (_: any, { query }: { query: string }) => {
       if (!query || query.trim() === "") return [];
       const searchResults = await typesenseClient.collections('products').documents().search({

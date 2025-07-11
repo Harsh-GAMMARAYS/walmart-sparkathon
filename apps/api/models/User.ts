@@ -22,6 +22,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  activity: {
+    cart: [{
+      id: String,
+      title: String,
+      price: Number,
+      quantity: Number,
+      image: String,
+      addedAt: { type: Date, default: Date.now }
+    }],
+    viewedProducts: [String],
+    searchHistory: [String],
+    lastActivity: { type: Date, default: Date.now }
+  }
 }, {
   timestamps: true,
 });

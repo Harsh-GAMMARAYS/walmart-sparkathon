@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/client": "^3.13.8",
     "@huggingface/hub": "^2.2.0",
+    "@types/bcryptjs": "^3.0.0",
     "@types/multer": "^1.4.13",
     "@types/node-fetch": "^2.6.12",
     "apache-arrow": "^20.0.0",
