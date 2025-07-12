@@ -2,14 +2,10 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import re
-# new
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-# 
 
 load_dotenv(dotenv_path="./.env")
-
 
 class DatabaseSearcher:
     def __init__(self, llm , db_name="WalmartDB", collection_name="products"):
