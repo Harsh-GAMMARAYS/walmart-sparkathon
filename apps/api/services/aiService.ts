@@ -1,43 +1,9 @@
 import axios from 'axios';
+import FormData from 'form-data';
+import fs from 'fs';
+import GraphQLJSON from 'graphql-type-json';
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:4001';
-
-export interface AIRecommendationRequest {
-  query: string;
-  userPreferences?: {
-    style?: string;
-    budget?: number;
-    size?: string;
-    color?: string;
-    occasion?: string;
-  };
-  userId?: string;
-}
-
-export interface AIRecommendationResponse {
-  products: Array<{
-    id: string;
-    name: string;
-    price: number;
-    confidence: number;
-    reason?: string;
-  }>;
-  explanation: string;
-  confidence: number;
-  suggestions: string[];
-}
-
-export interface VirtualTryOnRequest {
-  userImage: string; 
-  productId: string;
-  userId?: string;
-}
-
-export interface VirtualTryOnResponse {
-  processedImage: string;
-  confidence: number;
-  processingTime: number;
-}
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000'; // Use the correct port
 
 export class AIService {
   private baseURL: string;
@@ -46,59 +12,32 @@ export class AIService {
     this.baseURL = AI_SERVICE_URL;
   }
 
-// AI-Recommendation
-  async getRecommendations(request: AIRecommendationRequest): Promise<AIRecommendationResponse> {
-    try {
-      const response = await axios.post(`${this.baseURL}/api/ai/recommend`, request, {
-        timeout: 30000, 
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  // Unified method for recommendations/search
+  async getAgentQueryResponse(query: string, userId?: string): Promise<any> {
+    const requestBody = {
+      query_type: 'text',
+      content: { text_query: query },
+      uid: userId || 'default',
+      action: 'toolagent'
+    };
 
-      return response.data;
-    } catch (error) {
-      console.error('AI Service recommendation error:', error);
-      throw new Error('Failed to get AI recommendations');
-    }
+    const response = await axios.post(`${this.baseURL}/ai/agentQuery`, requestBody, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    return response.data;
   }
 
-// Virtual-TryOn
-  async generateVirtualTryOn(request: VirtualTryOnRequest): Promise<VirtualTryOnResponse> {
-    try {
-      const response = await axios.post(`${this.baseURL}/api/ai/try-on`, request, {
-        timeout: 60000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  async imageSearch(imagePath: string): Promise<any> {
+    const form = new FormData();
+    form.append('image', fs.createReadStream(imagePath));
 
-      return response.data;
-    } catch (error) {
-      console.error('AI Service virtual try-on error:', error);
-      throw new Error('Failed to generate virtual try-on');
-    }
-  }
-
-
-// AI-Context
-  async searchWithContext(query: string, context?: string): Promise<AIRecommendationResponse> {
-    try {
-      const response = await axios.post(`${this.baseURL}/api/ai/search`, {
-        query,
-        context,
-      }, {
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return response.data;
-    } catch (error) {
-      console.error('AI Service search error:', error);
-      throw new Error('Failed to search with AI context');
-    }
+    const response = await axios.post(
+      `${this.baseURL}/ai/imageSearch`,
+      form,
+      { headers: form.getHeaders() }
+    );
+    return response.data;
   }
 }
 
