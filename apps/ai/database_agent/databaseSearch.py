@@ -2,19 +2,26 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import re
+# new
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# 
 
 load_dotenv(dotenv_path="./.env")
 
 
 class DatabaseSearcher:
-    def __init__(self, llm , db_name="dataset1", collection_name="e-commerce-database"):
+    def __init__(self, llm , db_name="WalmartDB", collection_name="products"):
         # Load env variables
         load_dotenv()
-        password = os.getenv("MONGO_DB_PASSKEY")
+        # password = os.getenv("MONGO_DB_PASSKEY")
 
         # Connect to MongoDB Atlas
-        uri = f"mongodb+srv://manodeepray:{password}@cluster0.ht5shpm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-        self.client = MongoClient(uri)
+        uri = os.getenv("MONGODB_URI");
+        if not uri:
+            raise ValueError("MONGODB_URI environment variable not set!")
+        self.client = MongoClient(uri, tls=True)
         self.db = self.client[db_name]
         self.collection = self.db[collection_name]
 
@@ -128,6 +135,10 @@ class DatabaseSearcher:
         print("🔎 MongoDB Filter:", mongo_filter)
 
         results = list(self.collection.find(mongo_filter).limit(limit))
+        # Convert ObjectId to string for each result
+        for item in results:
+            if '_id' in item:
+                item['_id'] = str(item['_id'])
         if results:
             print(f"\n✅ Found {len(results)} matching item(s):")
             for item in results:
