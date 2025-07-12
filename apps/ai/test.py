@@ -26,7 +26,7 @@ url = "http://localhost:8000/ai/agentQuery"
 
 response = requests.post(url, json=query_json)
 
-print(response.json)
+print(response.json())
 
 
 

@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/client": "^3.13.8",
     "@huggingface/hub": "^2.2.0",
+    "@types/form-data": "^2.5.2",
     "apache-arrow": "^20.0.0",
     "apollo-server-express": "^3.12.1",
     "axios": "^1.10.0",
@@ -21,6 +22,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
+    "form-data": "^4.0.3",
     "graphql": "^16.11.0",
     "graphql-tag": "^2.12.6",
     "graphql-type-json": "^0.3.2",

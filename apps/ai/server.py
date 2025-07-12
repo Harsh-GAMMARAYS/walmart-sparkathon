@@ -54,11 +54,10 @@ except Exception as e:
     print(f"ERROR initializing the supervisor  agent : {e}")
 try:
     searcher = imageSearch.imageSearcher()
-
     print("========  image searcher initialized ===========")
-
 except Exception as e:
     print(f"ERROR initializing the image searcher : {e}")
+    searcher = None  # Set to None if initialization fails
 
 
 
@@ -115,7 +114,9 @@ async def searchFromImage(image : UploadFile = File(...)):
     
     try:
         #loadimage from buffer to search and output search results
-    
+        if searcher is None:
+            return JSONResponse(status_code=500, content={"error": "Image searcher not initialized. Check server startup logs."})
+        
         search_output = searcher.searchFromImage(image_path=buffer_path)
         return search_output
     
