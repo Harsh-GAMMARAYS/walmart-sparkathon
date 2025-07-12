@@ -1,10 +1,10 @@
 from PIL import Image
-try:
-    from .text_to_image import text_to_image_search
-    from .image_to_image import image_to_image_search
-except:
-    from text_to_image import text_to_image_search
-    from image_to_image import image_to_image_search
+# try:
+from .text_to_image import text_to_image_search
+from .image_to_image import image_to_image_search
+# except:
+#     from text_to_image import text_to_image_search
+#     from image_to_image import image_to_image_search
 
 from datasets import load_dataset
 
