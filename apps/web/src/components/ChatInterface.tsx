@@ -27,18 +27,32 @@ export function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // TODO: Implement AI response logic here
-    // For now, we'll just echo back
+    // --- Real AI backend call ---
+    const token = localStorage.getItem('token'); // or however you store the JWT
+
+    const response = await fetch('http://localhost:4000/ai/agentQuery', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query: input }),
+    });
+    const data = await response.json();
+    console.log(data); // See the full response
+
+    const content =
+      data.agent_output?.llm_output ||
+      data.llm_output ||
+      "Sorry, I couldn't get a response from the AI.";
+
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
-      content: `I received your message: "${input}"`,
+      content,
       role: 'assistant',
       timestamp: new Date(),
     };
-
-    setTimeout(() => {
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
+    setMessages((prev) => [...prev, assistantMessage]);
   };
 
   return (
