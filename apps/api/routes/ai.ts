@@ -1,12 +1,13 @@
 import express from 'express';
-import { authenticateJWT } from '../middleware/auth';
-import { getAIRecommendations, generateVirtualTryOn, searchWithAIContext} from '../controllers/aiController';
+import multer from 'multer';
+// import { authenticateJWT } from '../middleware/auth';
+import { getAgentQueryResponse, imageSearch } from '../controllers/aiController';
 
 const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
 
-// AI endpoints 
-router.post('/recommendations', authenticateJWT, getAIRecommendations);
-router.post('/try-on', authenticateJWT, generateVirtualTryOn);
-router.post('/search', authenticateJWT, searchWithAIContext);
+// AI endpoints
+router.post('/agentQuery', getAgentQueryResponse);
+router.post('/imageSearch', upload.single('image'), imageSearch);
 
 export default router; 

@@ -1,0 +1,12 @@
+
+set basemodels pydantic for the query jsons  and outputs then test ---- done
+
+make the histiory agent <---- redis ?
+
+
+for /ai/imageSearch - take in image ---> save to database ---> load from database ---> image search ---> return o/p --- done 
+for ai/agentQuery - take in text query --> run agents loop ---> return o/p ----- done
+
+
+
+decoding json problem 
