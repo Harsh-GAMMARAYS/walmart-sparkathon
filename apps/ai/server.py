@@ -124,13 +124,13 @@ async def searchFromImage(image : UploadFile = File(...)):
     
     
 @app.api_route(path="/ai/agentQuery" , methods=["POST"])
-async def searchFromImage(query_json: jsonInput)-> AgentResponse:
+async def searchFromImage(query_json: jsonInput) -> Dict:
     query_json = query_json.model_dump()
     try:
         #getting response from supervisor
         supervisor_response = supervisor.get_agent_response(query_json = query_json)
     
     
-        return supervisor_response
+        return {"agent_output": supervisor_response}
     except Exception as e:
         return JSONResponse(status_code=500 , content={"error":str(e)})
