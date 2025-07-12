@@ -36,6 +36,9 @@ importers:
       '@huggingface/hub':
         specifier: ^2.2.0
         version: 2.2.0
+      '@types/bcryptjs':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@types/multer':
         specifier: ^1.4.13
         version: 1.4.13
@@ -1224,6 +1227,13 @@ packages:
     resolution: {integrity: sha512-Pay9fq2lM2wXPWbteBsRAGiWH2hig4ZE2asK+mm7kUzlxRTfL961rj89I6zV/E3PcIkDqyuBEcMxFT7rccugeQ==}
     dependencies:
       '@types/node': 20.19.0
+    dev: false
+
+  /@types/bcryptjs@3.0.0:
+    resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
+    deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
+    dependencies:
+      bcryptjs: 3.0.2
     dev: false
 
   /@types/body-parser@1.19.2:
