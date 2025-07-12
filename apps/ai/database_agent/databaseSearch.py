@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 import re
 import sys
+import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv(dotenv_path="./.env")
@@ -101,21 +102,45 @@ class DatabaseSearcher:
         
         
     def summarizer(self , results):
+        if not results:
+            return "I couldn't find any products matching your search. Try a different search term?"
+            
+        # Return structured product data for the frontend to render as cards
+        products_data = []
+        for item in results:
+            product_id = item.get('_id', '')
+            title = item.get('title', 'Unknown Product')
+            price = item.get('price', 0)
+            brand = item.get('brand', 'Unknown Brand')
+            description = item.get('description', '')
+            images = item.get('image', [])
+            
+            # Get first image for thumbnail
+            thumbnail = images[0] if images and len(images) > 0 else 'https://via.placeholder.com/200x200?text=No+Image'
+            
+            product_data = {
+                'id': product_id,
+                'title': title,
+                'brand': brand,
+                'price': price,
+                'description': description[:100] + '...' if len(description) > 100 else description,
+                'thumbnail': thumbnail,
+                'link': f"http://localhost:3000/products/{product_id}"
+            }
+            products_data.append(product_data)
         
+        # Create response with special marker for product cards
+        if len(results) == 1:
+            intro = "I found this product for you:"
+        else:
+            intro = f"I found {len(results)} great options for you:"
+            
+        # Use special markers that the frontend will detect
+        response = f"{intro}\n\n[PRODUCT_CARDS_START]{json.dumps(products_data)}[PRODUCT_CARDS_END]\n\nYou can click any product to view details, or ask me about specific items!"
         
-        prompt = f"""
-        You are a helpful assistant. A user searched for products, and here are the database results:
+        return response
 
-        {results}
-
-        Summarize the above list in a clear, concise way, highlighting key product features, brand names, categories, and prices. Use bullet points or a numbered list. Avoid repeating similar items unnecessarily.
-            """
-
-        response = self.llm.get_response(prompt=prompt)
-
-        return response.strip()
-
-    def search(self, natural_query: str, limit: int = 10):
+    def search(self, natural_query: str, limit: int = 5):
         
         agent_response = {
                             'agent_output':{

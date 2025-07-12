@@ -16,5 +16,6 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/aspect-ratio'), // For product image aspect ratios
+    require('@tailwindcss/line-clamp'), // For text truncation
   ],
 }; 

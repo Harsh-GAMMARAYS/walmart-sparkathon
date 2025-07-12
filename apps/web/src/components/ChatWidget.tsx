@@ -46,9 +46,6 @@ export function ChatWidget() {
             ${open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-8 pointer-events-none'}
           `}
         >
-          <div className="flex items-center px-4 py-2" style={{ background: '#232F3E' }}>
-            <span className="font-bold text-white">AI Assistant</span>
-          </div>
           <ChatInterface />
         </div>
       )}

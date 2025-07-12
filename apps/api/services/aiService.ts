@@ -13,12 +13,13 @@ export class AIService {
   }
 
   // Unified method for recommendations/search
-  async getAgentQueryResponse(query: string, userId?: string): Promise<any> {
+  async getAgentQueryResponse(query: string, userId?: string, context?: any[]): Promise<any> {
     const requestBody = {
       query_type: 'text',
       content: { text_query: query },
       uid: userId || 'default',
-      action: 'toolagent'
+      action: 'toolagent',
+      context: context || []
     };
 
     const response = await axios.post(`${this.baseURL}/ai/agentQuery`, requestBody, {

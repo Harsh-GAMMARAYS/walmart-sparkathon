@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "graphql": "^16.11.0",
     "next": "15.3.3",
     "react": "^19.1.0",

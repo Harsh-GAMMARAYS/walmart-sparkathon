@@ -47,7 +47,7 @@ const typeDefs = gql`
   }
 
   type Query {
-    agentQuery(query: String!, userId: String): AgentQueryResponse
+    agentQuery(query: String!, userId: String, context: JSON): AgentQueryResponse
     products(limit: Int, offset: Int): [Product!]!
     product(id: ID!): Product
     productsByCategory(category: String!): [Product!]!
@@ -89,8 +89,8 @@ const resolvers = {
           { brand: { $regex: query, $options: 'i' } }
         ]
       }),
-    agentQuery: async (_: any, { query, userId }: { query: string, userId?: string }) => {
-      return await aiService.getAgentQueryResponse(query, userId);
+    agentQuery: async (_: any, { query, userId, context }: { query: string, userId?: string, context?: any[] }) => {
+      return await aiService.getAgentQueryResponse(query, userId, context);
     }
   },
 };
@@ -136,7 +136,7 @@ async function startServer(): Promise<void> {
   const PORT = process.env.PORT;
   app.listen(PORT, () => {
     console.log(`Server ready at http://localhost:${PORT}${server.graphqlPath}`);
-    console.log(`AI Service URL: ${process.env.AI_SERVICE_URL || 'http://localhost:4001'}`);
+    console.log(`AI Service URL: ${process.env.AI_SERVICE_URL || 'http://localhost:8000'}`);
   });
 }
 

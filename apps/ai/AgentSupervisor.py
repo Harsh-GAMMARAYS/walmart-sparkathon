@@ -206,27 +206,48 @@ class SupervisorAgent:
     
     def format_agent_outputs(self, agent_llm_outputs: dict):
         """
-        Takes the agent_llm_outputs dictionary and creates a section-wise natural language explanation.
+        Takes the agent_llm_outputs dictionary and creates a natural, customer-friendly response.
         """
         prompt = f"""
-                    You are a helpful assistant. You are given the outputs from multiple agents in a dictionary format like this:
+                    You are a helpful Walmart shopping assistant. Based on the search results below, provide a natural, conversational response to the customer.
 
-                    {agent_llm_outputs}
+                    Search Results: {agent_llm_outputs}
 
-                    Each key represents a specific agent's response:
-                    - "search_agent_output": output from a tool that performs external or semantic search
-                    - "history_agent_output": output based on user history or past interactions
-                    - "database_agent_output": output from a MongoDB-based product lookup
+                    Rules:
+                    - Write as if you're a friendly store associate helping a customer
+                    - NEVER mention "Database Agent Output", "Search Agent Output", or any technical terms
+                    - Just give the product information naturally
+                    - If products were found, present them in a helpful way
+                    - Keep it conversational and customer-focused
+                    - If multiple products are available, present them as options
 
-                    Your task is to generate a **section-wise summary** in natural language that clearly and cleanly explains each part. For each section:
-                    - Use a clear heading (like "🔍 Search Agent Output")
-                    - If the value is `None`, say the agent did not return any useful information.
-                    - Otherwise, summarize or rewrite the response into a concise and readable format.
-
-                    Make the response structured, easy to read, and human-friendly.
-
-                    Generate the final response below:
+                    Write a natural response:
         """
+        response = self.llm.get_response(prompt=prompt)
+        return response.strip()
+        
+    def handle_product_details(self, query: str, products: list) -> str:
+        """
+        Handle follow-up questions about specific products from previous search results.
+        """
+        prompt = f"""
+        You are a helpful Walmart shopping assistant. A customer is asking about specific products from a previous search.
+
+        Customer's question: "{query}"
+        
+        Available products from previous search:
+        {json.dumps(products, indent=2)}
+
+        Rules:
+        - Answer the customer's specific question about the products
+        - If they ask about a specific product (by name, brand, or position), provide detailed info
+        - Include product links when relevant: http://localhost:3000/products/[product_id]
+        - Be helpful and conversational
+        - If they ask about price, size, description, etc., provide that info
+        
+        Provide a helpful response:
+        """
+        
         response = self.llm.get_response(prompt=prompt)
         return response.strip()
 
@@ -328,7 +349,7 @@ class SupervisorAgent:
     
     def get_agent_response(self , query_json):
         query = query_json['content']['text_query']
-        
+        context = query_json.get('context', [])
         
         supervisor_response = {
             "llm_output":None,
@@ -336,10 +357,27 @@ class SupervisorAgent:
             "action" : None
         }
         
+        # Check if this is a follow-up question about products from context
+        previous_products = None
+        if context and len(context) > 0:
+            # Look for previous assistant messages that might contain product data
+            for msg in reversed(context):
+                if msg.get('role') == 'assistant' and 'View Product:' in msg.get('content', ''):
+                    # This suggests we previously showed products
+                    previous_products = "found_in_context"  # Flag that we have product context
+                    break
         
-        
-        print(f"\nUser Query: \"{query}\"")
-        decision_result = self.decide_agent(query = query)
+        # Add context to query if available
+        if context and len(context) > 0:
+            context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context[-3:]])  # Last 3 messages
+            query_with_context = f"Previous conversation:\n{context_str}\n\nCurrent question: {query}"
+            print(f"\nUser Query with Context: \"{query_with_context}\"")
+            decision_query = query_with_context
+        else:
+            print(f"\nUser Query: \"{query}\"")
+            decision_query = query
+            
+        decision_result = self.decide_agent(query = decision_query)
         
         
         
@@ -349,7 +387,7 @@ class SupervisorAgent:
         if decision_result.get("simplellm"):
             print("  -> Route to simplellm ")
             action = "simplellm"
-            response = self.llm.get_response(prompt=query)
+            response = self.llm.get_response(prompt=decision_query)
             
             
             supervisor_response["llm_output"] = response
@@ -361,14 +399,34 @@ class SupervisorAgent:
         elif decision_result.get("toolagent"):
             print("  -> Route to Tool Agent")
             action = "toolagent"
-            agent_output = self.run_agents_loop(query_json=query_json)
+            # Update query_json to include context-enhanced query for agents
+            enhanced_query_json = query_json.copy()
+            enhanced_query_json['content']['text_query'] = decision_query
+            agent_output = self.run_agents_loop(query_json=enhanced_query_json)
 
 
 
 
 
-            supervisor_response["llm_output"] = self.format_agent_outputs(agent_output["agent_output"]["llm_output"])
-            supervisor_response["raw_output"] = agent_output["agent_output"]["raw_output"]
+            # Check if we have database results with products
+            raw_output = agent_output["agent_output"]["raw_output"]
+            llm_output = agent_output["agent_output"]["llm_output"]
+            database_results = raw_output.get("database_agent_output") if raw_output else None
+            
+            if database_results and len(database_results) > 0:
+                # We have product results - use the clean database response directly
+                clean_response = llm_output.get("database_agent_output", "")
+                supervisor_response["llm_output"] = clean_response
+                supervisor_response["raw_output"] = {
+                    "products": database_results,  # Store for follow-up questions
+                    "last_search": query,
+                    "action_type": "product_search"
+                }
+            else:
+                # Handle non-product responses (web search, general questions)
+                supervisor_response["llm_output"] = self.format_agent_outputs(llm_output)
+                supervisor_response["raw_output"] = raw_output
+            
             supervisor_response["action"] = action
 
 

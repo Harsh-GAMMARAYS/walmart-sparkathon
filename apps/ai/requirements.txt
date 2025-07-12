@@ -27,3 +27,4 @@ transformers
 datasets
 pymongo
 markdown
+sentence-transformers
