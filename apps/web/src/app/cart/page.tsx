@@ -70,10 +70,13 @@ function RecentlyViewedProduct({ productId }: { productId: string }) {
 }
 
 export default function CartPage() {
-  const { user, getSessionData, removeFromCart, updateCartQuantity, cartTotal, cartItemsCount } = useAuth();
+  const { user, getSessionData, removeFromCart, updateCartQuantity, resetCartQuantities, cartTotal, cartItemsCount } = useAuth();
   const router = useRouter();
   const sessionData = getSessionData();
   const cartItems = sessionData.cart;
+  
+  // Check if there are any inflated quantities
+  const hasInflatedQuantities = cartItems.some(item => item.quantity > 5);
 
   // Redirect to sign in if trying to checkout without being logged in
   const handleCheckout = () => {
@@ -125,13 +128,26 @@ export default function CartPage() {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b border-gray-200">
-                  <h1 className="text-2xl font-bold text-gray-900">Shopping Cart</h1>
-                  <p className="text-gray-600">{cartItemsCount} {cartItemsCount === 1 ? 'item' : 'items'}</p>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Shopping Cart</h1>
+                      <p className="text-gray-600">{cartItemsCount} {cartItemsCount === 1 ? 'item' : 'items'}</p>
+                    </div>
+                    {hasInflatedQuantities && (
+                      <button
+                        onClick={resetCartQuantities}
+                        className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                        title="Reset unusually high quantities to 1"
+                      >
+                        Fix Quantities
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="divide-y divide-gray-200">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="p-6">
+                  {cartItems.map((item, index) => (
+                    <div key={`${item.id}-${item.addedAt}-${index}`} className="p-6">
                       <div className="flex items-start space-x-4">
                         {/* Product Image */}
                         <div className="flex-shrink-0">

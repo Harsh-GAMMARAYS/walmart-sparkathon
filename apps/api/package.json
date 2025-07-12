@@ -13,9 +13,6 @@
   "dependencies": {
     "@apollo/client": "^3.13.8",
     "@huggingface/hub": "^2.2.0",
-    "@types/bcryptjs": "^3.0.0",
-    "@types/multer": "^1.4.13",
-    "@types/node-fetch": "^2.6.12",
     "apache-arrow": "^20.0.0",
     "apollo-server-express": "^3.12.1",
     "axios": "^1.10.0",
@@ -37,11 +34,14 @@
     "typesense": "^2.0.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.97",
+    "@types/multer": "^1.4.13",
     "@types/node": "^20.10.5",
+    "@types/node-fetch": "^2.6.12",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

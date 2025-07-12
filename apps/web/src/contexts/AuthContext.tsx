@@ -44,6 +44,7 @@ interface AuthContextType extends AuthState {
   trackProductView: (productId: string) => void;
   trackSearch: (query: string) => void;
   getSessionData: () => SessionData;
+  resetCartQuantities: () => void;
   cartItemsCount: number;
   cartTotal: number;
 }
@@ -105,6 +106,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastActivity: new Date().toISOString()
   });
 
+  const fetchUserActivity = async (token: string) => {
+    // Fetch user's stored activity data from backend
+    try {
+      const response = await fetch('http://localhost:4000/user/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update frontend session state with user's stored data
+        if (data.user && data.user.activity) {
+          // Clean up any inflated quantities before setting the data
+          const cleanedCart = (data.user.activity.cart || []).map((item: any) => ({
+            ...item,
+            quantity: item.quantity > 10 ? 1 : item.quantity // Reset quantities over 10 to 1
+          }));
+          
+          setSessionData({
+            cart: cleanedCart,
+            viewedProducts: data.user.activity.viewedProducts || [],
+            searchHistory: data.user.activity.searchHistory || [],
+            lastActivity: data.user.activity.lastActivity || new Date().toISOString()
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Fetch user activity error:', error);
+    }
+  };
+
   // Initialize session
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -123,6 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }));
     
     setSessionData(storedSessionData);
+
+    // If user is already logged in, fetch their activity data from backend
+    if (storedToken && storedUser) {
+      fetchUserActivity(storedToken);
+    }
   }, []);
 
   // Save session data whenever it changes
@@ -160,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token: data.token
         }));
 
-        // Migrate session data to user account
+        // Migrate session data to user account (this already loads the merged cart)
         await migrateSessionToUser(data.token, authState.sessionId, sessionData);
         
         return true;
@@ -200,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token: data.token
         }));
 
-        // Migrate session data to user account
+        // Migrate session data to user account (this already loads the merged cart)
         await migrateSessionToUser(data.token, authState.sessionId, sessionData);
         
         return true;
@@ -250,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const migrateSessionToUser = async (token: string, currentSessionId: string, currentSessionData: SessionData) => {
     // Send session data to backend to merge with user account
     try {
-      await fetch('http://localhost:4000/user/migrate-session', {
+      const response = await fetch('http://localhost:4000/user/migrate-session', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -261,9 +302,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionData: currentSessionData
         })
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update frontend session state with merged data from backend
+        if (data.activity) {
+          // Clean up any inflated quantities before setting the data
+          const cleanedCart = (data.activity.cart || []).map((item: any) => ({
+            ...item,
+            quantity: item.quantity > 10 ? 1 : item.quantity // Reset quantities over 10 to 1
+          }));
+          
+          setSessionData({
+            cart: cleanedCart,
+            viewedProducts: data.activity.viewedProducts || [],
+            searchHistory: data.activity.searchHistory || [],
+            lastActivity: data.activity.lastActivity || new Date().toISOString()
+          });
+        }
+      }
     } catch (error) {
       console.error('Session migration error:', error);
     }
+  };
+
+  const syncCartWithBackend = async (updatedSessionData: SessionData) => {
+    // Sync cart changes with backend if user is logged in
+    if (authState.token) {
+      try {
+        await fetch('http://localhost:4000/user/sync-cart', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authState.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            cart: updatedSessionData.cart
+          })
+        });
+      } catch (error) {
+        console.error('Cart sync error:', error);
+      }
+    }
+  };
+
+  const resetCartQuantities = () => {
+    // Reset any inflated quantities to reasonable values
+    setSessionData(prev => {
+      const newSessionData = {
+        ...prev,
+        cart: prev.cart.map(item => ({
+          ...item,
+          quantity: item.quantity > 5 ? 1 : item.quantity // Reset quantities over 5 to 1
+        }))
+      };
+      
+      // Sync with backend if user is logged in
+      if (authState.token) {
+        syncCartWithBackend(newSessionData);
+      }
+      
+      return newSessionData;
+    });
   };
 
   const addToCart = (product: any) => {
@@ -278,8 +379,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setSessionData(prev => {
       const existingItem = prev.cart.find(item => item.id === product.id);
+      let newSessionData;
+      
       if (existingItem) {
-        return {
+        newSessionData = {
           ...prev,
           cart: prev.cart.map(item =>
             item.id === product.id
@@ -288,19 +391,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           )
         };
       } else {
-        return {
+        newSessionData = {
           ...prev,
           cart: [...prev.cart, cartItem]
         };
       }
+
+      // Sync with backend if user is logged in
+      syncCartWithBackend(newSessionData);
+      
+      return newSessionData;
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setSessionData(prev => ({
-      ...prev,
-      cart: prev.cart.filter(item => item.id !== productId)
-    }));
+    setSessionData(prev => {
+      const newSessionData = {
+        ...prev,
+        cart: prev.cart.filter(item => item.id !== productId)
+      };
+      
+      // Sync with backend if user is logged in
+      syncCartWithBackend(newSessionData);
+      
+      return newSessionData;
+    });
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
@@ -309,12 +424,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setSessionData(prev => ({
-      ...prev,
-      cart: prev.cart.map(item =>
-        item.id === productId ? { ...item, quantity } : item
-      )
-    }));
+    setSessionData(prev => {
+      const newSessionData = {
+        ...prev,
+        cart: prev.cart.map(item =>
+          item.id === productId ? { ...item, quantity } : item
+        )
+      };
+      
+      // Sync with backend if user is logged in
+      syncCartWithBackend(newSessionData);
+      
+      return newSessionData;
+    });
   };
 
   const trackProductView = (productId: string) => {
@@ -355,6 +477,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     trackProductView,
     trackSearch,
     getSessionData,
+    resetCartQuantities,
     cartItemsCount,
     cartTotal
   };

@@ -46,14 +46,28 @@ export const migrateSession = async (req: AuthRequest, res: Response) => {
 
     // Merge session data with user's existing activity
     if (sessionData.cart && sessionData.cart.length > 0) {
-      // Add cart items to user's existing cart (avoiding duplicates)
-      const existingCartIds = (userDoc.activity.cart || []).map((item: any) => item.id);
-      const newCartItems = sessionData.cart.filter((item: any) => !existingCartIds.includes(item.id));
+      // Merge cart items properly - combine quantities for existing items
+      const existingCart = userDoc.activity.cart || [];
       
-      // Push new items to the cart array
-      for (const item of newCartItems) {
-        userDoc.activity.cart.push(item);
+      for (const sessionItem of sessionData.cart) {
+        const existingItemIndex = existingCart.findIndex((item: any) => item.id === sessionItem.id);
+        
+        if (existingItemIndex >= 0) {
+          // Item exists - merge quantities
+          existingCart[existingItemIndex].quantity += sessionItem.quantity;
+          // Update the addedAt timestamp to the more recent one
+          const existingDate = new Date(existingCart[existingItemIndex].addedAt);
+          const sessionDate = new Date(sessionItem.addedAt);
+          if (sessionDate > existingDate) {
+            existingCart[existingItemIndex].addedAt = sessionItem.addedAt;
+          }
+        } else {
+          // Item doesn't exist - add it to the cart
+          existingCart.push(sessionItem);
+        }
       }
+      
+      userDoc.activity.cart = existingCart;
     }
 
     if (sessionData.viewedProducts && sessionData.viewedProducts.length > 0) {
@@ -84,5 +98,47 @@ export const migrateSession = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Session migration error:', error);
     res.status(500).json({ message: 'Server error during session migration' });
+  }
+};
+
+export const syncCart = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized!' });
+    }
+
+    const { cart } = req.body;
+    
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    // Initialize activity if it doesn't exist
+    const userDoc = user as any;
+    if (!userDoc.activity) {
+      userDoc.activity = {
+        cart: [],
+        viewedProducts: [],
+        searchHistory: [],
+        lastActivity: new Date()
+      };
+    }
+
+    // Replace cart completely (no merging to avoid quantity inflation)
+    userDoc.activity.cart = cart || [];
+    userDoc.activity.lastActivity = new Date();
+    
+    await user.save();
+
+    res.json({ 
+      message: 'Cart synced successfully',
+      activity: userDoc.activity 
+    });
+  } catch (error) {
+    console.error('Cart sync error:', error);
+    res.status(500).json({ message: 'Server error during cart sync' });
   }
 }; 
