@@ -1,5 +1,6 @@
 from fastapi.responses import JSONResponse 
 from fastapi import FastAPI , UploadFile  , File
+from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from item_search_agent import imageSearch
 import AgentSupervisor
@@ -23,6 +24,9 @@ class jsonInput(BaseModel):
     content: Union[imageInput , textInput]
     uid : str
     action : Optional[Literal["imagesearch" , "toolagent"]]
+    context: Optional[List[Dict]] = None
+    user: Optional[Dict] = None
+    browsingContext: Optional[Dict] = None
     
 
 # ----------- OUTPUT dataclasses---------------#
@@ -57,6 +61,8 @@ try:
     print("========  image searcher initialized ===========")
 except Exception as e:
     print(f"ERROR initializing the image searcher : {e}")
+    import traceback
+    traceback.print_exc()
     searcher = None  # Set to None if initialization fails
 
 
@@ -64,6 +70,15 @@ except Exception as e:
 
 #----------- server endpoints ------------------------
 app =  FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend origins
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 
 @app.api_route(path="/", methods=["GET"])
@@ -125,13 +140,19 @@ async def searchFromImage(image : UploadFile = File(...)):
     
     
 @app.api_route(path="/ai/agentQuery" , methods=["POST"])
-async def searchFromImage(query_json: jsonInput) -> Dict:
+async def agentQuery(query_json: jsonInput) -> Dict:
     query_json = query_json.model_dump()
     try:
+        # Check if supervisor is initialized
+        if supervisor is None:
+            return JSONResponse(status_code=500, content={"error": "Agent supervisor not initialized. Check server startup logs."})
+        
         #getting response from supervisor
         supervisor_response = supervisor.get_agent_response(query_json = query_json)
-    
-    
+        
         return {"agent_output": supervisor_response}
     except Exception as e:
+        import traceback
+        print(f"ERROR in agentQuery: {e}")
+        print(traceback.format_exc())
         return JSONResponse(status_code=500 , content={"error":str(e)})

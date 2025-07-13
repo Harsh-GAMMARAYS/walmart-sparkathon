@@ -3,8 +3,8 @@ import { aiService } from '../services/aiService';
 
 export const getAgentQueryResponse = async (req: Request, res: Response) => {
   try {
-    const { query, userId, context } = req.body;
-    const aiResponse = await aiService.getAgentQueryResponse(query, userId, context);
+    const { query, userId, context, user, browsingContext } = req.body;
+    const aiResponse = await aiService.getAgentQueryResponse(query, userId, context, user, browsingContext);
     res.json(aiResponse);
   } catch (error) {
     const message = (error instanceof Error) ? error.message : 'Unknown error';

@@ -159,7 +159,6 @@ export default function SearchPage() {
                     <div className="text-sm text-gray-600 mb-1">{product.brand}</div>
                     <div className="text-lg font-bold text-blue-600 mb-1">${product.price}</div>
                     <div className="text-xs text-gray-500 mb-1">{product.category}</div>
-                    <div className="text-xs text-gray-400 mt-auto">{product.description}</div>
                   </div>
                 </div>
               </Link>

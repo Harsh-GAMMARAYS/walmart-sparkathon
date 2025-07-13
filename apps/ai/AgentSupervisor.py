@@ -204,10 +204,12 @@ class SupervisorAgent:
     
     
     
-    def format_agent_outputs(self, agent_llm_outputs: dict):
+    def format_agent_outputs(self, agent_llm_outputs: dict, user_name: str = None):
         """
         Takes the agent_llm_outputs dictionary and creates a natural, customer-friendly response.
         """
+        greeting = f"Hello {user_name}! " if user_name else "Hello! "
+        
         prompt = f"""
                     You are a helpful Walmart shopping assistant. Based on the search results below, provide a natural, conversational response to the customer.
 
@@ -220,16 +222,19 @@ class SupervisorAgent:
                     - If products were found, present them in a helpful way
                     - Keep it conversational and customer-focused
                     - If multiple products are available, present them as options
+                    - Start with a friendly greeting if appropriate
 
                     Write a natural response:
         """
         response = self.llm.get_response(prompt=prompt)
         return response.strip()
         
-    def handle_product_details(self, query: str, products: list) -> str:
+    def handle_product_details(self, query: str, products: list, user_name: str = None) -> str:
         """
         Handle follow-up questions about specific products from previous search results.
         """
+        greeting = f"Hello {user_name}! " if user_name else ""
+        
         prompt = f"""
         You are a helpful Walmart shopping assistant. A customer is asking about specific products from a previous search.
 
@@ -244,6 +249,7 @@ class SupervisorAgent:
         - Include product links when relevant: http://localhost:3000/products/[product_id]
         - Be helpful and conversational
         - If they ask about price, size, description, etc., provide that info
+        - Use the customer's name if provided: {user_name}
         
         Provide a helpful response:
         """
@@ -350,12 +356,25 @@ class SupervisorAgent:
     def get_agent_response(self , query_json):
         query = query_json['content']['text_query']
         context = query_json.get('context', [])
+        user_info = query_json.get('user', {})
+        user_name = user_info.get('name') if user_info else None
+        is_guest = user_info is None or user_info == {}
+        browsing_context = query_json.get('browsingContext', {})
+        
+        # Extract browsing context information
+        search_history = browsing_context.get('searchHistory', [])
+        viewed_products = browsing_context.get('viewedProducts', [])
+        cart_items = browsing_context.get('cartItems', [])
+        cart_total = browsing_context.get('cartTotal', 0)
         
         supervisor_response = {
             "llm_output":None,
             "raw_output":None,
             "action" : None
         }
+        
+        # Check if this is a greeting or first interaction
+        is_greeting = any(word in query.lower() for word in ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'])
         
         # Check if this is a follow-up question about products from context
         previous_products = None
@@ -367,15 +386,31 @@ class SupervisorAgent:
                     previous_products = "found_in_context"  # Flag that we have product context
                     break
         
+        # Enhanced query with browsing context
+        enhanced_query_parts = [f"Customer query: {query}"]
+        
+        # Add browsing context information
+        if search_history:
+            enhanced_query_parts.append(f"Recent searches: {', '.join(search_history[:3])}")
+        
+        if viewed_products:
+            enhanced_query_parts.append(f"Recently viewed {len(viewed_products)} products")
+        
+        if cart_items:
+            cart_summary = f"Cart: {len(cart_items)} items, total: ${cart_total:.2f}"
+            if len(cart_items) <= 3:
+                cart_details = ", ".join([f"{item.get('title', 'Unknown')} (${item.get('price', 0):.2f})" for item in cart_items])
+                cart_summary += f" - {cart_details}"
+            enhanced_query_parts.append(cart_summary)
+        
         # Add context to query if available
         if context and len(context) > 0:
             context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in context[-3:]])  # Last 3 messages
-            query_with_context = f"Previous conversation:\n{context_str}\n\nCurrent question: {query}"
-            print(f"\nUser Query with Context: \"{query_with_context}\"")
-            decision_query = query_with_context
-        else:
-            print(f"\nUser Query: \"{query}\"")
-            decision_query = query
+            enhanced_query_parts.append(f"Previous conversation:\n{context_str}")
+        
+        decision_query = "\n".join(enhanced_query_parts)
+        
+        print(f"\nUser Query with Browsing Context: \"{decision_query}\"")
             
         decision_result = self.decide_agent(query = decision_query)
         
@@ -387,8 +422,34 @@ class SupervisorAgent:
         if decision_result.get("simplellm"):
             print("  -> Route to simplellm ")
             action = "simplellm"
-            response = self.llm.get_response(prompt=decision_query)
             
+            # Enhanced prompt for simple LLM with user and browsing context
+            enhanced_prompt = f"""
+            You are a helpful Walmart shopping assistant. 
+            {"Customer name: " + user_name if user_name else "Customer: Guest user"}
+            
+            Customer query: {query}
+            
+            Browsing Context:
+            {"- Recent searches: " + ", ".join(search_history[:3]) if search_history else ""}
+            {"- Recently viewed " + str(len(viewed_products)) + " products" if viewed_products else ""}
+            {"- Cart: " + str(len(cart_items)) + " items, total $" + str(cart_total) + "" if cart_items else ""}
+            
+            Rules:
+            - Be friendly and conversational
+            - {"Address the customer by name (" + user_name + ") when appropriate" if user_name else ""}
+            - Use their browsing context to provide more relevant suggestions
+            - If they have items in cart, you can reference them
+            - If they've been searching for specific items, acknowledge their interests
+            - Provide helpful information based on their shopping behavior
+            - If it's a greeting, respond warmly and offer assistance
+            - Keep responses focused on helping with shopping needs
+            {"- Occasionally mention benefits of creating an account for better personalized experience" if is_guest else ""}
+            
+            Provide a helpful response:
+            """
+            
+            response = self.llm.get_response(prompt=enhanced_prompt)
             
             supervisor_response["llm_output"] = response
             supervisor_response["action"] = action
@@ -404,10 +465,6 @@ class SupervisorAgent:
             enhanced_query_json['content']['text_query'] = decision_query
             agent_output = self.run_agents_loop(query_json=enhanced_query_json)
 
-
-
-
-
             # Check if we have database results with products
             raw_output = agent_output["agent_output"]["raw_output"]
             llm_output = agent_output["agent_output"]["llm_output"]
@@ -416,15 +473,52 @@ class SupervisorAgent:
             if database_results and len(database_results) > 0:
                 # We have product results - use the clean database response directly
                 clean_response = llm_output.get("database_agent_output", "")
+                
+                # Add personalized greeting with browsing context
+                if user_name and (is_greeting or len(context) == 0):
+                    greeting = f"Hello {user_name}! "
+                    if search_history:
+                        greeting += f"I see you've been searching for {search_history[0]}. "
+                    clean_response = greeting + clean_response
+                elif is_guest and (is_greeting or len(context) == 0):
+                    greeting = "Hello! "
+                    if search_history:
+                        greeting += f"I see you've been searching for {search_history[0]}. "
+                    clean_response = greeting + clean_response + "\n\n💡 Tip: Sign up for a Walmart account to get personalized recommendations, order history, and exclusive deals!"
+                
+                # Add browsing context hints for product searches
+                if search_history and not is_greeting:
+                    if any(search_term.lower() in query.lower() for search_term in search_history[:2]):
+                        clean_response += f"\n\n🔍 Based on your recent searches, I found these related products for you!"
+                
+                # Add guest benefits message occasionally for product searches
+                if is_guest and not is_greeting and len(context) > 2:
+                    clean_response += "\n\n🔑 Want a better shopping experience? Create an account to save your preferences and get tailored recommendations!"
+                
                 supervisor_response["llm_output"] = clean_response
                 supervisor_response["raw_output"] = {
                     "products": database_results,  # Store for follow-up questions
                     "last_search": query,
-                    "action_type": "product_search"
+                    "action_type": "product_search",
+                    "browsing_context": browsing_context
                 }
             else:
                 # Handle non-product responses (web search, general questions)
-                supervisor_response["llm_output"] = self.format_agent_outputs(llm_output)
+                formatted_response = self.format_agent_outputs(llm_output, user_name)
+                
+                # Add personalized greeting with browsing context
+                if user_name and (is_greeting or len(context) == 0):
+                    greeting = f"Hello {user_name}! "
+                    if search_history:
+                        greeting += f"I see you've been browsing for {search_history[0]}. "
+                    formatted_response = greeting + formatted_response
+                elif is_guest and (is_greeting or len(context) == 0):
+                    greeting = "Hello! "
+                    if search_history:
+                        greeting += f"I see you've been browsing for {search_history[0]}. "
+                    formatted_response = greeting + formatted_response + "\n\n💡 Tip: Sign up for a Walmart account to get personalized recommendations, order history, and exclusive deals!"
+                
+                supervisor_response["llm_output"] = formatted_response
                 supervisor_response["raw_output"] = raw_output
             
             supervisor_response["action"] = action

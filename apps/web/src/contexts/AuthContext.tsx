@@ -269,6 +269,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error);
     }
 
+    // Note: We don't clear the user's chat history on logout
+    // so it can be restored when they log back in
+    // The chat interface will handle showing guest mode properly
+
     // Clear auth data
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');

@@ -23,6 +23,7 @@ fastapi[standard]
 langchain
 langchain-huggingface
 torch
+torchvision
 transformers
 datasets
 pymongo

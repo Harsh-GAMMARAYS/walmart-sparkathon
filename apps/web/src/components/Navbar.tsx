@@ -8,6 +8,7 @@ import { useRef, useEffect } from 'react';
 import { DEPARTMENT_MAPPING } from '@/utils/departments';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { AISearchModal } from './AISearchModal';
 
 const PRODUCT_SUGGESTIONS = gql`
   query ProductSuggestions($query: String!) {
@@ -25,9 +26,18 @@ export function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showDepartments, setShowDepartments] = useState(false);
   const [highlightedIdx, setHighlightedIdx] = useState(-1);
+  const [showAIMenu, setShowAIMenu] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiModalQuery, setAiModalQuery] = useState<string | undefined>(undefined);
+  const [aiImageResults, setAiImageResults] = useState<any>(undefined);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const departmentsRef = useRef<HTMLDivElement>(null);
+  const aiMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { user, cartItemsCount, cartTotal, logout, trackSearch } = useAuth();
   const router = useRouter();
@@ -74,6 +84,26 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  // Hide AI menu dropdown on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (aiMenuRef.current && !aiMenuRef.current.contains(e.target as Node)) {
+        setShowAIMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Cleanup voice recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognition) {
+        recognition.stop();
+      }
+    };
+  }, [recognition]);
+
   const handleSuggestionClick = (id: string) => {
     window.location.href = `/products/${id}`;
     setShowSuggestions(false);
@@ -100,14 +130,150 @@ export function Navbar() {
     );
   };
 
-  const handleAISearch = async () => {
-    // TODO: Replace with your actual AI server endpoint
-    await fetch('https://your-ai-server-endpoint', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: searchValue }),
-    });
-    // Optionally handle response or show a toast
+  const handleAISearch = () => {
+    // Track the search if user is logged in and there's a query
+    if (searchValue.trim()) {
+      trackSearch(searchValue.trim());
+      setAiModalQuery(searchValue.trim());
+    } else {
+      setAiModalQuery(undefined);
+    }
+    
+    // Clear any previous image results
+    setAiImageResults(undefined);
+    
+    // Open the AI modal
+    setShowAIModal(true);
+    setShowSuggestions(false);
+    setShowAIMenu(false);
+  };
+
+  const handleVoiceSearch = () => {
+    // If already listening, stop the recording
+    if (isListening && recognition) {
+      recognition.stop();
+      setIsListening(false);
+      setRecognition(null);
+      return;
+    }
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Voice search is not supported in your browser. Please try Chrome or Edge.');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const newRecognition = new SpeechRecognition();
+    
+    newRecognition.continuous = true; // Continue listening
+    newRecognition.interimResults = true; // Show interim results
+    newRecognition.lang = 'en-US';
+
+    newRecognition.onstart = () => {
+      setIsListening(true);
+      setRecognition(newRecognition);
+    };
+
+    newRecognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      
+      // Update the search input field in real-time
+      setSearchValue(transcript);
+    };
+
+    newRecognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      setRecognition(null);
+      if (event.error === 'no-speech') {
+        alert('No speech detected. Please try again.');
+      } else {
+        alert('Voice search failed. Please try again.');
+      }
+    };
+
+    newRecognition.onend = () => {
+      setIsListening(false);
+      setRecognition(null);
+    };
+
+    newRecognition.start();
+  };
+
+  const handleQuickAction = (action: string) => {
+    const actionQueries = {
+      'popular': 'Show me popular products',
+      'deals': 'What are the best deals today?',
+      'electronics': 'Show me electronics',
+      'clothing': 'Show me clothing and fashion',
+      'home': 'Show me home and garden products',
+      'grocery': 'Show me grocery items',
+      'recommendations': 'Give me personalized recommendations',
+      'compare': 'Help me compare products'
+    };
+
+    const query = actionQueries[action as keyof typeof actionQueries] || action;
+    trackSearch(query);
+    setAiModalQuery(query);
+    setAiImageResults(undefined); // Clear any previous image results
+    setShowAIModal(true);
+    setShowAIMenu(false);
+  };
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setShowAIMenu(false);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:8000/ai/imageSearch', {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Image search response:', data);
+
+      // Store image search results and open modal
+      setAiImageResults(data);
+      setAiModalQuery(undefined); // No initial query for image search
+      setShowAIModal(true);
+      trackSearch('Image Search');
+    } catch (error) {
+      console.error('Image search error:', error);
+      alert('Failed to search by image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSearch = () => {
@@ -192,16 +358,174 @@ export function Navbar() {
             <button type="submit" className="flex items-center justify-center w-10 h-10 bg-[#032684] rounded-full ml-2 hover:bg-blue-700 transition">
               <img src="/search.svg" alt="Search" className="w-5 h-5" />
             </button>
-            {/* AI Search button */}
-            <button
-              type="button"
-              className="flex items-center justify-center px-4 h-10 bg-yellow-400 rounded-full ml-3 text-[#032684] font-bold hover:bg-yellow-300 transition gap-2"
-              onClick={handleAISearch}
-              aria-label="AI Search"
-            >
-              <img src="/ai-icon.svg" alt="AI" className="w-5 h-5" />
-              <span>AI Search</span>
-            </button>
+            {/* AI Search button with dropdown */}
+            <div className="relative ml-3">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  className="flex items-center justify-center px-4 h-10 bg-yellow-400 rounded-l-full text-[#032684] font-bold hover:bg-yellow-300 transition gap-2"
+                  onClick={handleAISearch}
+                  aria-label="AI Search"
+                >
+                  <img src="/ai-icon.svg" alt="AI" className="w-5 h-5" />
+                  <span>AI Search</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-8 h-10 bg-yellow-400 rounded-r-full border-l border-yellow-500 text-[#032684] hover:bg-yellow-300 transition"
+                  onClick={() => setShowAIMenu(!showAIMenu)}
+                  aria-label="AI Search Options"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* AI Menu Dropdown */}
+              {showAIMenu && (
+                <div ref={aiMenuRef} className="absolute right-0 top-12 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="p-4 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 mb-2">AI Search Options</h3>
+                    <p className="text-sm text-gray-600">Get smarter search results with AI</p>
+                  </div>
+                  
+                  {/* Voice Search */}
+                  <div className="p-3 border-b border-gray-100">
+                    <button
+                      onClick={handleVoiceSearch}
+                      disabled={isListening}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition ${
+                        isListening ? 'bg-red-50 text-red-700' : 'text-gray-700'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isListening ? 'bg-red-100' : 'bg-blue-100'
+                      }`}>
+                        {isListening ? (
+                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                        ) : (
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold text-gray-800">
+                          {isListening ? 'Recording...' : 'Voice Search'}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {isListening ? 'Click to stop recording' : 'Search by speaking'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Image Search */}
+                  <div className="p-3 border-b border-gray-100">
+                    <button
+                      onClick={handleImageUpload}
+                      disabled={isUploadingImage}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition ${
+                        isUploadingImage ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isUploadingImage ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        {isUploadingImage ? (
+                          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold text-gray-800">
+                          {isUploadingImage ? 'Searching...' : 'Image Search'}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {isUploadingImage ? 'Finding similar products' : 'Upload photo to find similar products'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  {/* Quick Actions */}
+                  <div className="p-3">
+                    <div className="text-sm font-semibold text-gray-800 mb-2">Quick Actions</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleQuickAction('popular')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-orange-500">🔥</span>
+                        <span className="font-medium">Popular</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction('deals')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-green-500">💰</span>
+                        <span className="font-medium">Deals</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction('electronics')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-blue-500">📱</span>
+                        <span className="font-medium">Electronics</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction('clothing')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-purple-500">👕</span>
+                        <span className="font-medium">Clothing</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction('home')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-yellow-500">🏠</span>
+                        <span className="font-medium">Home</span>
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction('grocery')}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="text-red-500">🍎</span>
+                        <span className="font-medium">Grocery</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Personalized Actions */}
+                  {user && (
+                    <div className="p-3 border-t border-gray-100">
+                      <div className="text-sm font-semibold text-gray-800 mb-2">For You</div>
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => handleQuickAction('recommendations')}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span className="text-pink-500">✨</span>
+                          <span className="font-medium">Personalized Recommendations</span>
+                        </button>
+                        <button
+                          onClick={() => handleQuickAction('compare')}
+                          className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 text-left text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span className="text-indigo-500">⚖️</span>
+                          <span className="font-medium">Compare Products</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {/* Suggestions Dropdown */}
             {showSuggestions && searchValue && (
               <div ref={dropdownRef} className="absolute left-1/2 -translate-x-1/2 top-14 w-[500px] bg-white border border-blue-100 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
@@ -363,6 +687,27 @@ export function Navbar() {
           <li className="cursor-pointer hover:underline">Walmart+</li>
         </ul>
       </nav>
+      
+      {/* AI Search Modal */}
+      <AISearchModal 
+        isOpen={showAIModal} 
+        onClose={() => {
+          setShowAIModal(false);
+          setAiModalQuery(undefined);
+          setAiImageResults(undefined);
+        }} 
+        initialQuery={aiModalQuery}
+        imageSearchResults={aiImageResults}
+      />
+
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </>
   );
 } 

@@ -53,6 +53,7 @@ const typeDefs = gql`
     productsByCategory(category: String!): [Product!]!
     productsByBrand(brand: String!): [Product!]!
     searchProducts(query: String!): [Product!]!
+    productSuggestions(query: String!): [Product!]!
   }
 `;
 
@@ -89,6 +90,14 @@ const resolvers = {
           { brand: { $regex: query, $options: 'i' } }
         ]
       }),
+    productSuggestions: async (_: any, { query }: { query: string }) => 
+      await Product.find({
+        $or: [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+          { brand: { $regex: query, $options: 'i' } }
+        ]
+      }).limit(5), // Limit suggestions to 5 items
     agentQuery: async (_: any, { query, userId, context }: { query: string, userId?: string, context?: any[] }) => {
       return await aiService.getAgentQueryResponse(query, userId, context);
     }
