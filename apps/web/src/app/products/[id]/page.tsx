@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChatWidget } from '@/components/ChatWidget';
+import { VirtualTryOnModal } from '@/components/VirtualTryOnModal';
 import Link from 'next/link';
 import { getDepartmentForCategory } from '@/utils/departments';
 
@@ -56,6 +57,7 @@ export default function ProductDetailPage() {
   const { data, loading, error } = useQuery(GET_PRODUCT, { variables: { id } });
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [showVirtualTryOn, setShowVirtualTryOn] = useState(false);
   const { user, addToCart, trackProductView, isLoading: authLoading } = useAuth();
 
   const product = data?.product;
@@ -356,9 +358,12 @@ export default function ProductDetailPage() {
                     </div>
                   )}
 
-                  {/* Try on Virtually Button - Only for Clothing */}
-                  {product && isClothingItem(product.category) && (
-                    <button className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors mb-4 flex items-center justify-center gap-2">
+                  {/* Try on Virtually Button - Only for specific product */}
+                  {product && product.id === '68541f4acdb26551257a6c37' && (
+                    <button 
+                      onClick={() => setShowVirtualTryOn(true)}
+                      className="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors mb-4 flex items-center justify-center gap-2"
+                    >
                       <span>👗</span>
                       Try on virtually
                     </button>
@@ -476,6 +481,14 @@ export default function ProductDetailPage() {
         )}
       </main>
       <ChatWidget />
+      
+      {/* Virtual Try-On Modal */}
+      <VirtualTryOnModal 
+        isOpen={showVirtualTryOn}
+        onClose={() => setShowVirtualTryOn(false)}
+        productImage={images[selectedImageIndex] || '/placeholder-image.jpg'}
+        productTitle={product?.title || 'Product'}
+      />
     </>
   );
 } 
